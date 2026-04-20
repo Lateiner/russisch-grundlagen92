@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Lernspiel: Endungs-Puzzle</title>
+    <style>
+        :root {
+            --primary-blue: #3498db;
+            --dark-blue: #2c3e50;
+            --success-green: #27ae60;
+            --error-red: #e74c3c;
+            --bg-light: #f8f9fa;
+            --white: #ffffff;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-light);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 15px;
+        }
+
+        .game-card {
+            background: var(--white);
+            max-width: 500px;
+            width: 100%;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background: #eee;
+            border-radius: 4px;
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+
+        #progress-bar {
+            height: 100%;
+            width: 0%;
+            background: var(--primary-blue);
+            transition: width 0.3s ease;
+        }
+
+        h1 {
+            font-size: 1.4rem;
+            color: var(--dark-blue);
+            margin-bottom: 10px;
+        }
+
+        .instruction {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 0.95rem;
+        }
+
+        .puzzle-area {
+            background: #f1f8ff;
+            padding: 30px 15px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border: 2px dashed var(--primary-blue);
+        }
+
+        .sentence {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--dark-blue);
+        }
+
+        .stem {
+            color: var(--dark-blue);
+        }
+
+        .blank {
+            display: inline-block;
+            min-width: 60px;
+            border-bottom: 3px solid var(--primary-blue);
+            margin: 0 5px;
+            color: var(--primary-blue);
+            text-align: center;
+        }
+
+        .noun {
+            color: #555;
+            margin-left: 10px;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .option-btn {
+            background: var(--white);
+            border: 2px solid var(--primary-blue);
+            color: var(--primary-blue);
+            padding: 15px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        @media (hover: hover) {
+            .option-btn:hover {
+                background: var(--primary-blue);
+                color: white;
+            }
+        }
+
+        .option-btn.correct {
+            background: var(--success-green) !important;
+            border-color: var(--success-green) !important;
+            color: white !important;
+        }
+
+        .option-btn.wrong {
+            background: var(--error-red) !important;
+            border-color: var(--error-red) !important;
+            color: white !important;
+        }
+
+        .feedback-msg {
+            height: 20px;
+            margin-top: 20px;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        #final-screen {
+            display: none;
+        }
+
+        .restart-btn {
+            background: var(--dark-blue);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+
+        /* Animation für Richtig/Falsch */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .shake { animation: shake 0.3s ease-in-out; }
+
+    </style>
+</head>
+<body>
+
+<div class="game-card" id="game-container">
+    <div class="progress-container">
+        <div id="progress-bar"></div>
+    </div>
+
+    <div id="quiz-content">
+        <h1>О русском по-русски</h1>
+        <p class="instruction">Wähle die richtige Endung für das Substantiv:</p>
+
+        <div class="puzzle-area" id="puzzle-box">
+            <div class="sentence">
+                <span class="stem" id="current-stem">пят</span><span class="blank" id="current-blank">...</span><span class="noun" id="current-noun">день</span>
+            </div>
+        </div>
+
+        <div class="options-grid">
+            <button class="option-btn" onclick="checkAnswer('ый')">ый</button>
+            <button class="option-btn" onclick="checkAnswer('ая')">ая</button>
+            <button class="option-btn" onclick="checkAnswer('ое')">ое</button>
+            <button class="option-btn" onclick="checkAnswer('ые')">ые</button>
+        </div>
+
+        <div class="feedback-msg" id="feedback"></div>
+    </div>
+
+    <div id="final-screen">
+        <h2>Отлично! (Hervorragend!)</h2>
+        <p>Du hast alle Endungen richtig zugeordnet.</p>
+        <button class="restart-btn" onclick="resetGame()">Noch einmal spielen</button>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        { stem: "пят", noun: "день", correct: "ый", hint: "Maskulin" },
+        { stem: "девят", noun: "лекция", correct: "ая", hint: "Feminin" },
+        { stem: "перв", noun: "упражнение", correct: "ое", hint: "Neutrum" },
+        { stem: "шест", noun: "шаги", correct: "ые", hint: "Plural" },
+        { stem: "десят", noun: "страница", correct: "ая", hint: "Feminin" },
+        { stem: "четверт", noun: "задание", correct: "ое", hint: "Neutrum" },
+        { stem: "седьм", noun: "урок", correct: "ый", hint: "Maskulin" },
+        { stem: "восьм", noun: "классы", correct: "ые", hint: "Plural" }
+    ];
+
+    let currentIdx = 0;
+    let canClick = true;
+
+    function loadQuestion() {
+        const q = questions[currentIdx];
+        document.getElementById('current-stem').innerText = q.stem;
+        document.getElementById('current-noun').innerText = q.noun;
+        document.getElementById('current-blank').innerText = "...";
+        document.getElementById('feedback').innerText = "";
+        
+        // Buttons zurücksetzen
+        const btns = document.querySelectorAll('.option-btn');
+        btns.forEach(btn => btn.className = 'option-btn');
+        
+        // Progress
+        const progress = (currentIdx / questions.length) * 100;
+        document.getElementById('progress-bar').style.width = progress + "%";
+    }
+
+    function checkAnswer(selected) {
+        if (!canClick) return;
+        
+        const q = questions[currentIdx];
+        const feedback = document.getElementById('feedback');
+        const blank = document.getElementById('current-blank');
+        const puzzleBox = document.getElementById('puzzle-box');
+        
+        // Finde den geklickten Button
+        const btns = document.querySelectorAll('.option-btn');
+        let selectedBtn;
+        btns.forEach(b => { if(b.innerText === selected) selectedBtn = b; });
+
+        if (selected === q.correct) {
+            canClick = false;
+            selectedBtn.classList.add('correct');
+            blank.innerText = q.correct;
+            feedback.style.color = 'var(--success-green)';
+            feedback.innerText = "Правильно! (" + q.hint + ")";
+            
+            setTimeout(() => {
+                currentIdx++;
+                if (currentIdx < questions.length) {
+                    loadQuestion();
+                    canClick = true;
+                } else {
+                    showFinalScreen();
+                }
+            }, 1500);
+
+        } else {
+            selectedBtn.classList.add('wrong');
+            puzzleBox.classList.add('shake');
+            feedback.style.color = 'var(--error-red)';
+            feedback.innerText = "Попробуйте ещё раз!";
+            
+            setTimeout(() => {
+                selectedBtn.classList.remove('wrong');
+                puzzleBox.classList.remove('shake');
+            }, 500);
+        }
+    }
+
+    function showFinalScreen() {
+        document.getElementById('progress-bar').style.width = "100%";
+        document.getElementById('quiz-content').style.display = 'none';
+        document.getElementById('final-screen').style.display = 'block';
+    }
+
+    function resetGame() {
+        currentIdx = 0;
+        canClick = true;
+        document.getElementById('quiz-content').style.display = 'block';
+        document.getElementById('final-screen').style.display = 'none';
+        loadQuestion();
+    }
+
+    // Initialer Start
+    loadQuestion();
+</script>
+
+</body>
+</html>
