@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch Lernen: Ordnungszahlen</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #3498db;
+            --accent-color: #27ae60;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            font-size: 1.8rem;
+        }
+
+        p.instruction {
+            text-align: center;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        /* Bereich für die Fragen (Ziele) */
+        .drop-zone-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .drop-zone {
+            border: 3px dashed var(--secondary-color);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            min-height: 150px;
+            transition: all 0.3s ease;
+            background: #eef7fd;
+        }
+
+        .drop-zone.active {
+            background: #d6eaf8;
+            transform: scale(1.02);
+            border-style: solid;
+        }
+
+        .drop-zone h2 {
+            margin-top: 0;
+            color: var(--secondary-color);
+            font-size: 2rem;
+        }
+
+        /* Bereich für die Antwortkärtchen */
+        .items-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+            border-top: 2px solid #eee;
+            padding-top: 30px;
+        }
+
+        .draggable-item {
+            background: var(--secondary-color);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            font-size: 1.1rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 160px;
+        }
+
+        .draggable-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+        }
+
+        .draggable-item.selected {
+            background: var(--accent-color);
+            ring: 4px solid gold;
+            transform: scale(1.05);
+        }
+
+        .draggable-item i {
+            font-style: normal;
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .placed-item {
+            background: var(--primary-color);
+            color: white;
+            padding: 8px 12px;
+            margin: 5px auto;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            animation: fadeIn 0.4s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .feedback {
+            text-align: center;
+            margin-top: 20px;
+            font-weight: bold;
+            height: 24px;
+        }
+
+        .reset-btn {
+            display: block;
+            margin: 30px auto 0;
+            padding: 12px 25px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .reset-btn:hover {
+            background: #1a252f;
+        }
+
+        /* Responsive Anpassungen */
+        @media (max-width: 600px) {
+            .drop-zone-container {
+                grid-template-columns: 1fr;
+            }
+            .container {
+                padding: 15px;
+            }
+            .draggable-item {
+                width: 100%;
+                max-width: 250px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>О русском по-русски</h1>
+    <p class="instruction">
+        Wann fragst du nach der Eigenschaft und wann nach der Reihenfolge? <br>
+        <strong>Klicke zuerst eine Situation an und dann die passende Frage.</strong>
+    </p>
+
+    <div class="drop-zone-container">
+        <div class="drop-zone" id="zone-kakoj" onclick="targetClicked('kakoj')">
+            <h2>Какой?</h2>
+            <p>(Welcher? - Eigenschaft)</p>
+            <div id="list-kakoj"></div>
+        </div>
+        <div class="drop-zone" id="zone-kotoryj" onclick="targetClicked('kotoryj')">
+            <h2>Который?</h2>
+            <p>(Der wievielte? - Reihenfolge)</p>
+            <div id="list-kotoryj"></div>
+        </div>
+    </div>
+
+    <div class="items-container" id="source-items">
+        <!-- Items werden per JS geladen -->
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+    <button class="reset-btn" onclick="resetGame()">Neu starten</button>
+</div>
+
+<script>
+    const data = [
+        { id: 1, text: "Красный шар", icon: "🔴", type: "kakoj" },
+        { id: 2, text: "Третий человек", icon: "👤", type: "kotoryj" },
+        { id: 3, text: "Большой дом", icon: "🏠", type: "kakoj" },
+        { id: 4, text: "Пятый день", icon: "📅", type: "kotoryj" },
+        { id: 5, text: "Новый учебник", icon: "📖", type: "kakoj" },
+        { id: 6, text: "Десятая страница", icon: "📄", type: "kotoryj" }
+    ];
+
+    let selectedItem = null;
+    let correctCount = 0;
+
+    function initGame() {
+        const container = document.getElementById('source-items');
+        container.innerHTML = '';
+        data.sort(() => Math.random() - 0.5).forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'draggable-item';
+            div.id = 'item-' + item.id;
+            div.innerHTML = `<i>${item.icon}</i>${item.text}`;
+            div.onclick = (e) => { e.stopPropagation(); itemClicked(item, div); };
+            container.appendChild(div);
+        });
+        document.getElementById('list-kakoj').innerHTML = '';
+        document.getElementById('list-kotoryj').innerHTML = '';
+        document.getElementById('feedback').innerText = '';
+        correctCount = 0;
+    }
+
+    function itemClicked(item, element) {
+        // Markierung aufheben
+        document.querySelectorAll('.draggable-item').forEach(el => el.classList.remove('selected'));
+        
+        selectedItem = item;
+        element.classList.add('selected');
+        
+        // Optisches Feedback für die Zielzonen
+        document.querySelectorAll('.drop-zone').forEach(el => el.classList.add('active'));
+    }
+
+    function targetClicked(targetType) {
+        if (!selectedItem) return;
+
+        const feedback = document.getElementById('feedback');
+        
+        if (selectedItem.type === targetType) {
+            // Richtig
+            const list = document.getElementById('list-' + targetType);
+            const placed = document.createElement('div');
+            placed.className = 'placed-item';
+            placed.innerText = selectedItem.text;
+            list.appendChild(placed);
+            
+            document.getElementById('item-' + selectedItem.id).style.visibility = 'hidden';
+            feedback.style.color = 'green';
+            feedback.innerText = 'Правильно!';
+            correctCount++;
+        } else {
+            // Falsch
+            feedback.style.color = 'red';
+            feedback.innerText = 'Попробуйте ещё раз!';
+        }
+
+        // Reset Selection
+        selectedItem = null;
+        document.querySelectorAll('.draggable-item').forEach(el => el.classList.remove('selected'));
+        document.querySelectorAll('.drop-zone').forEach(el => el.classList.remove('active'));
+
+        if (correctCount === data.length) {
+            feedback.style.color = '#27ae60';
+            feedback.innerText = 'Молодцы! Вы всё сделали правильно!';
+        }
+    }
+
+    function resetGame() {
+        initGame();
+    }
+
+    // Initialisierung beim Start
+    initGame();
+</script>
+
+</body>
+</html>
