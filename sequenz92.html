@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch: Ordnungszahlen Schlange</title>
+    <style>
+        :root {
+            --primary: #3498db;
+            --success: #27ae60;
+            --error: #e74c3c;
+            --bg: #f0f2f5;
+            --text: #2c3e50;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background: white;
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        h1 { color: var(--text); font-size: 1.5rem; margin-bottom: 10px; }
+        .desc { color: #666; margin-bottom: 25px; font-size: 0.95rem; }
+
+        /* Die Schlange */
+        .snake-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 12px;
+            margin-bottom: 30px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 15px;
+            border: 2px solid #e9ecef;
+        }
+
+        .slot {
+            height: 55px;
+            border: 2px dashed #cbd5e0;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: white;
+            transition: all 0.3s ease;
+        }
+
+        /* Nummerierung an den Slots */
+        .slot::before {
+            content: attr(data-num) ".";
+            position: absolute;
+            top: -8px;
+            left: 5px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            color: #718096;
+            background: white;
+            padding: 0 4px;
+        }
+
+        /* Wort-Karten */
+        .word-card {
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            transition: all 0.2s ease;
+            user-select: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: 2px solid var(--primary);
+            background: white;
+            color: var(--text);
+            width: 90%;
+            text-align: center;
+        }
+
+        .word-card.correct {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+
+        .word-card.wrong {
+            background: var(--error);
+            border-color: var(--error);
+            color: white;
+            animation: shake 0.4s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-4px); }
+            75% { transform: translateX(4px); }
+        }
+
+        /* Wort-Pool */
+        .pool {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            padding: 20px;
+            border-top: 2px solid #edf2f7;
+            min-height: 100px;
+        }
+
+        .pool .word-card:hover {
+            transform: translateY(-2px);
+            background: #ebf8ff;
+        }
+
+        /* Buttons */
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: opacity 0.2s;
+        }
+
+        .btn-solution { background: #cbd5e0; color: #4a5568; }
+        .btn-reset { background: var(--text); color: white; }
+        button:hover { opacity: 0.8; }
+
+        .feedback {
+            margin-top: 15px;
+            font-weight: bold;
+            height: 1.5rem;
+        }
+
+        @media (max-width: 500px) {
+            .snake-grid { grid-template-columns: 1fr 1fr; }
+            .word-card { font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Порядковые числительные</h1>
+    <p class="desc">Bringe die Zahlen in die richtige Reihenfolge.<br><strong>Klicke ein Wort an, um es zu platzieren oder zu entfernen.</strong></p>
+
+    <div class="snake-grid" id="snake-grid">
+        <!-- 10 Slots -->
+        <div class="slot" data-num="1" id="slot-0"></div>
+        <div class="slot" data-num="2" id="slot-1"></div>
+        <div class="slot" data-num="3" id="slot-2"></div>
+        <div class="slot" data-num="4" id="slot-3"></div>
+        <div class="slot" data-num="5" id="slot-4"></div>
+        <div class="slot" data-num="6" id="slot-5"></div>
+        <div class="slot" data-num="7" id="slot-6"></div>
+        <div class="slot" data-num="8" id="slot-7"></div>
+        <div class="slot" data-num="9" id="slot-8"></div>
+        <div class="slot" data-num="10" id="slot-9"></div>
+    </div>
+
+    <div class="pool" id="word-pool"></div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <div class="controls">
+        <button class="btn-solution" onclick="showSolution()">Lösung zeigen</button>
+        <button class="btn-reset" onclick="resetGame()">Neu starten</button>
+    </div>
+</div>
+
+<script>
+    const correctOrder = [
+        "первый", "второй", "третий", "четвёртый", "пятый", 
+        "шестой", "седьмой", "восьмой", "девятый", "десятый"
+    ];
+
+    let currentSlots = new Array(10).fill(null);
+
+    function initGame() {
+        const pool = document.getElementById('word-pool');
+        pool.innerHTML = '';
+        const shuffled = [...correctOrder].sort(() => Math.random() - 0.5);
+
+        shuffled.forEach(word => {
+            const card = document.createElement('div');
+            card.className = 'word-card';
+            card.innerText = word;
+            card.id = 'pool-' + word;
+            card.onclick = () => handlePoolClick(word);
+            pool.appendChild(card);
+        });
+    }
+
+    function handlePoolClick(word) {
+        const nextFreeIndex = currentSlots.indexOf(null);
+        if (nextFreeIndex === -1) return; // Alle voll
+
+        placeInSlot(word, nextFreeIndex);
+    }
+
+    function placeInSlot(word, index) {
+        currentSlots[index] = word;
+        
+        // Aus dem Pool ausblenden
+        const poolCard = document.getElementById('pool-' + word);
+        poolCard.style.visibility = 'hidden';
+
+        const slot = document.getElementById(`slot-${index}`);
+        const card = document.createElement('div');
+        card.className = 'word-card';
+        card.innerText = word;
+
+        // Direktes Feedback
+        if (word === correctOrder[index]) {
+            card.classList.add('correct');
+            setFeedback("Правильно!", "var(--success)");
+        } else {
+            card.classList.add('wrong');
+            setFeedback("Попробуйте ещё раз!", "var(--error)");
+        }
+
+        card.onclick = () => removeFormSlot(index, word);
+        slot.appendChild(card);
+
+        checkWin();
+    }
+
+    function removeFormSlot(index, word) {
+        currentSlots[index] = null;
+        const slot = document.getElementById(`slot-${index}`);
+        slot.innerHTML = '';
+
+        const poolCard = document.getElementById('pool-' + word);
+        poolCard.style.visibility = 'visible';
+        
+        setFeedback("", "");
+    }
+
+    function checkWin() {
+        const isComplete = currentSlots.every((word, i) => word === correctOrder[i]);
+        if (isComplete) {
+            setFeedback("Молодцы! Вы всё сделали правильно!", "var(--success)");
+        }
+    }
+
+    function setFeedback(msg, color) {
+        const fb = document.getElementById('feedback');
+        fb.innerText = msg;
+        fb.style.color = color;
+    }
+
+    function showSolution() {
+        resetGame();
+        correctOrder.forEach((word, i) => placeInSlot(word, i));
+        setFeedback("Вот правильный порядок.", "var(--text)");
+    }
+
+    function resetGame() {
+        currentSlots.fill(null);
+        for (let i = 0; i < 10; i++) {
+            document.getElementById(`slot-${i}`).innerHTML = '';
+        }
+        setFeedback("", "");
+        initGame();
+    }
+
+    initGame();
+</script>
+
+</body>
+</html>
