@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch: Belebtheits-Check (10 Sätze)</title>
+    <style>
+        :root {
+            --primary: #3498db;
+            --success: #27ae60;
+            --error: #e74c3c;
+            --bg: #f4f7f9;
+            --text: #2c3e50;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .game-container {
+            max-width: 750px;
+            width: 100%;
+            background: white;
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #eee;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        #progress-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--primary);
+            transition: width 0.4s ease;
+        }
+
+        .instruction {
+            background: #f0f7ff;
+            padding: 15px;
+            border-radius: 12px;
+            color: #333;
+            margin-bottom: 25px;
+            font-size: 1rem;
+            border-left: 5px solid var(--primary);
+            text-align: left;
+        }
+
+        .challenge-box {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .sentence-card {
+            background: #fff;
+            border: 2px solid #ddd;
+            padding: 20px 15px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 70px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .sentence-card:hover {
+            border-color: var(--primary);
+            background: #f8fbff;
+        }
+
+        .sentence-card.correct {
+            background-color: var(--success) !important;
+            border-color: var(--success) !important;
+            color: white !important;
+        }
+
+        .sentence-card.wrong {
+            background-color: var(--error) !important;
+            border-color: var(--error) !important;
+            color: white !important;
+            animation: shake 0.4s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .feedback {
+            margin-top: 15px;
+            font-weight: bold;
+            min-height: 48px;
+            padding: 0 10px;
+            font-size: 0.95rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 15px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .btn-next { background: var(--text); color: white; display: none; }
+        .btn-sol { background: #95a5a6; color: white; }
+
+        @media (min-width: 600px) {
+            .challenge-box { grid-template-columns: 1fr 1fr; }
+            .feedback { font-size: 1.05rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <div class="progress-bar"><div id="progress-fill"></div></div>
+    
+    <h2 id="task-title" style="margin-top:0">Aufgabe 1 von 10</h2>
+    <div class="instruction">
+        Finde den Satz mit dem <strong>belebten Objekt</strong> (Person). <br>
+        <em>Regel: Akkusativ belebt = Endung wie Genitiv (-ого / -их).</em>
+    </div>
+
+    <div class="challenge-box" id="challenge-box"></div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <div class="controls">
+        <button class="btn btn-sol" id="sol-btn" onclick="showSolution()">Lösung</button>
+        <button class="btn btn-next" id="next-btn" onclick="nextLevel()">Nächste Aufgabe</button>
+    </div>
+</div>
+
+<script>
+    const quizData = [
+        {
+            options: ["Я вижу первый дом.", "Я вижу первого студента."],
+            correctIdx: 1,
+            explanation: "Студент (Student) ist eine Person. Endung: -ого."
+        },
+        {
+            options: ["Она видит первых людей.", "Она видит первые здания."],
+            correctIdx: 0,
+            explanation: "Люди (Menschen) sind Personen. Endung im Plural: -ых."
+        },
+        {
+            options: ["Она виdet седьмой текст.", "Она видит седьмого гостя."],
+            correctIdx: 1,
+            explanation: "Гость (Gast) ist eine Person. Endung: -ого."
+        },
+        {
+            options: ["Мы ждём первых врачей.", "Мы ждём первые поезда."],
+            correctIdx: 0,
+            explanation: "Врачи (Ärzte) sind Personen. Endung im Plural: -ых."
+        },
+        {
+            options: ["Я пишу одиннадцатый раз.", "Я вижу одиннадцатого игрока."],
+            correctIdx: 1,
+            explanation: "Игрок (Spieler) ist belebt. Раз (Mal) ist abstrakt/unbelebt."
+        },
+        {
+            options: ["Ты знаешь третьих авторов?", "Ты знаешь третьи письма?"],
+            correctIdx: 0,
+            explanation: "Авторы (Autoren) sind Personen. Endung im Plural: -их."
+        },
+        {
+            options: ["Мы ищем десятый уровень.", "Мы ищем десятого участника."],
+            correctIdx: 1,
+            explanation: "Участник (Teilnehmer) ist eine Person. Endung: -ого."
+        },
+        {
+            options: ["Я учу пятых сыновей.", "Я учу пятые классы."],
+            correctIdx: 0,
+            explanation: "Сыновья (Söhne) sind Personen. Классы (Klassen) sind unbelebt."
+        },
+        {
+            options: ["Он ждёт восьмой этаж.", "Он ждёт восьмого брата."],
+            correctIdx: 1,
+            explanation: "Брат (Bruder) ist eine Person. Endung: -ого."
+        },
+        {
+            options: ["Я вижу вторых актёров.", "Я вижу вторые окна."],
+            correctIdx: 0,
+            explanation: "Актёры (Schauspieler) sind Personen. Endung im Plural: -ых."
+        }
+    ];
+
+    let currentIdx = 0;
+    let canClick = true;
+
+    function initLevel() {
+        canClick = true;
+        const q = quizData[currentIdx];
+        
+        document.getElementById('task-title').innerText = `Aufgabe ${currentIdx + 1} von 10`;
+        const progress = (currentIdx / quizData.length) * 100;
+        document.getElementById('progress-fill').style.width = progress + "%";
+        
+        document.getElementById('feedback').innerText = "";
+        document.getElementById('next-btn').style.display = "none";
+        document.getElementById('sol-btn').style.display = "inline-block";
+        
+        const container = document.getElementById('challenge-box');
+        container.innerHTML = '';
+        
+        // Die Optionen werden bei jedem Start gemischt, damit die Lösung nicht immer links/rechts ist
+        const displayOptions = q.options.map((text, index) => ({ text, index }));
+        displayOptions.sort(() => Math.random() - 0.5);
+
+        displayOptions.forEach((opt) => {
+            const card = document.createElement('div');
+            card.className = 'sentence-card';
+            card.innerText = opt.text;
+            card.onclick = () => checkAnswer(opt.index, card);
+            container.appendChild(card);
+        });
+    }
+
+    function checkAnswer(selectedIndex, card) {
+        if (!canClick) return;
+        
+        const q = quizData[currentIdx];
+        const feedback = document.getElementById('feedback');
+
+        if (selectedIndex === q.correctIdx) {
+            card.classList.add('correct');
+            feedback.innerHTML = "Правильно! (Richtig)<br>" + q.explanation;
+            feedback.style.color = "var(--success)";
+            finishLevel();
+        } else {
+            card.classList.add('wrong');
+            feedback.innerText = "Falsch. Das ist ein unbelebtes Objekt (Endung wie Nominativ).";
+            feedback.style.color = "var(--error)";
+            setTimeout(() => card.classList.remove('wrong'), 500);
+        }
+    }
+
+    function showSolution() {
+        if (!canClick) return;
+        const q = quizData[currentIdx];
+        const cards = document.querySelectorAll('.sentence-card');
+        
+        cards.forEach(card => {
+            if(card.innerText === q.options[q.correctIdx]) {
+                card.classList.add('correct');
+            }
+        });
+        
+        document.getElementById('feedback').innerHTML = "Lösung:<br>" + q.explanation;
+        document.getElementById('feedback').style.color = "var(--primary)";
+        finishLevel();
+    }
+
+    function finishLevel() {
+        canClick = false;
+        document.getElementById('next-btn').style.display = "inline-block";
+        document.getElementById('sol-btn').style.display = "none";
+    }
+
+    function nextLevel() {
+        currentIdx++;
+        if (currentIdx < quizData.length) {
+            initLevel();
+        } else {
+            showFinal();
+        }
+    }
+
+    function showFinal() {
+        document.getElementById('progress-fill').style.width = "100%";
+        document.querySelector('.game-container').innerHTML = `
+            <h1 style="color: var(--success)">Молодцы!</h1>
+            <p>Du hast alle 10 Aufgaben gemeistert und kannst nun belebte von unbelebten Objekten im Akkusativ unterscheiden.</p>
+            <button class="btn" style="background:var(--text); color:white; margin-top: 20px;" onclick="location.reload()">Noch einmal spielen</button>
+        `;
+    }
+
+    initLevel();
+</script>
+
+</body>
+</html>
