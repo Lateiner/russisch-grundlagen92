@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch: Lückentext Fälle</title>
+    <style>
+        :root {
+            --primary: #3498db;
+            --success: #27ae60;
+            --error: #e74c3c;
+            --bg: #f0f4f8;
+            --text: #2c3e50;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .quiz-container {
+            max-width: 600px;
+            width: 100%;
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #eee;
+            border-radius: 4px;
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+
+        #progress-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--primary);
+            transition: width 0.4s ease;
+        }
+
+        .sentence-display {
+            background: #f8faff;
+            padding: 30px 20px;
+            border-radius: 15px;
+            border: 2px solid #e1e8f0;
+            margin-bottom: 30px;
+            font-size: 1.4rem;
+            line-height: 1.6;
+            color: var(--text);
+        }
+
+        .blank {
+            display: inline-block;
+            min-width: 120px;
+            border-bottom: 3px solid var(--primary);
+            color: var(--primary);
+            font-weight: bold;
+            margin: 0 8px;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .option-btn {
+            background: white;
+            border: 2px solid #dee2e6;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .option-btn:hover {
+            border-color: var(--primary);
+            background: #f0f7ff;
+        }
+
+        .option-btn.correct {
+            background-color: var(--success) !important;
+            border-color: var(--success) !important;
+            color: white;
+        }
+
+        .option-btn.wrong {
+            background-color: var(--error) !important;
+            border-color: var(--error) !important;
+            color: white;
+            animation: shake 0.4s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .feedback {
+            margin-top: 20px;
+            height: 24px;
+            font-weight: bold;
+        }
+
+        .controls {
+            margin-top: 25px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .btn-next { background: var(--text); color: white; display: none; }
+        .btn-sol { background: #95a5a6; color: white; }
+
+        @media (min-width: 450px) {
+            .options-grid { grid-template-columns: repeat(3, 1fr); }
+            .sentence-display { font-size: 1.6rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="quiz-container">
+    <div class="progress-bar"><div id="progress-fill"></div></div>
+    
+    <h1>Заполни пропуски</h1>
+    <p style="color: #666; margin-bottom: 20px;">Wähle die richtige Form der Ordnungszahl:</p>
+
+    <div class="sentence-display" id="sentence">
+        <!-- Satz mit Lücke wird hier geladen -->
+    </div>
+
+    <div class="options-grid" id="options">
+        <!-- Buttons werden hier geladen -->
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <div class="controls">
+        <button class="btn btn-sol" id="sol-btn" onclick="showSolution()">Lösung</button>
+        <button class="btn btn-next" id="next-btn" onclick="nextQuestion()">Nächster Satz</button>
+    </div>
+</div>
+
+<script>
+    const quizData = [
+        {
+            before: "Я живу на",
+            after: "этаже.",
+            correct: "восемнадцатом",
+            options: ["восемнадцатый", "восемнадцатом", "восемнадцатого"],
+            hint: "Präpositiv (на чём?)"
+        },
+        {
+            before: "В этой книге нет",
+            after: "упражнения.",
+            correct: "первого",
+            options: ["первое", "первым", "первого"],
+            hint: "Genitiv (чего нет?)"
+        },
+        {
+            before: "Мы подошли к",
+            after: "дому.",
+            correct: "первому",
+            options: ["первому", "первого", "первым"],
+            hint: "Dativ (к чему?)"
+        },
+        {
+            before: "Я вижу",
+            after: "студентку.",
+            correct: "третью",
+            options: ["третья", "третью", "третьей"],
+            hint: "Akkusativ Feminin (кого?)"
+        },
+        {
+            before: "Он пришёл с",
+            after: "гостьей.",
+            correct: "первой",
+            options: ["первую", "первая", "первой"],
+            hint: "Instrumental Feminin (с кем?)"
+        },
+        {
+            before: "Они говорят о",
+            after: "задании.",
+            correct: "первом",
+            options: ["первом", "первого", "первым"],
+            hint: "Präpositiv Neutrum (о чём?)"
+        },
+        {
+            before: "Я вижу",
+            after: "дома.",
+            correct: "первые",
+            options: ["первые", "первых", "первыми"],
+            hint: "Akkusativ Plural unbelebt"
+        },
+        {
+            before: "Это",
+            after: "упражнение.",
+            correct: "первое",
+            options: ["первое", "первую", "первым"],
+            hint: "Nominativ Neutrum"
+        }
+    ];
+
+    let currentIdx = 0;
+    let canAnswer = true;
+
+    function initQuiz() {
+        canAnswer = true;
+        const q = quizData[currentIdx];
+        
+        // Progress
+        const progress = (currentIdx / quizData.length) * 100;
+        document.getElementById('progress-fill').style.width = progress + "%";
+        
+        // Sentence
+        document.getElementById('sentence').innerHTML = `${q.before} <span class="blank" id="blank-space">...</span> ${q.after}`;
+        
+        document.getElementById('feedback').innerText = "";
+        document.getElementById('next-btn').style.display = "none";
+        document.getElementById('sol-btn').style.display = "inline-block";
+        
+        // Options
+        const optionsDiv = document.getElementById('options');
+        optionsDiv.innerHTML = '';
+        
+        // Optionen mischen
+        const shuffled = [...q.options].sort(() => Math.random() - 0.5);
+        shuffled.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt;
+            btn.onclick = () => checkAnswer(opt, btn);
+            optionsDiv.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(selected, btn) {
+        if (!canAnswer) return;
+        
+        const q = quizData[currentIdx];
+        if (selected === q.correct) {
+            btn.classList.add('correct');
+            document.getElementById('blank-space').innerText = q.correct;
+            document.getElementById('feedback').innerText = "Правильно! (" + q.hint + ")";
+            document.getElementById('feedback').style.color = "var(--success)";
+            finishQuestion();
+        } else {
+            btn.classList.add('wrong');
+            document.getElementById('feedback').innerText = "Попробуйте ещё раз!";
+            document.getElementById('feedback').style.color = "var(--error)";
+            setTimeout(() => btn.classList.remove('wrong'), 500);
+        }
+    }
+
+    function showSolution() {
+        if (!canAnswer) return;
+        const q = quizData[currentIdx];
+        document.getElementById('blank-space').innerText = q.correct;
+        document.getElementById('blank-space').style.color = "var(--success)";
+        document.getElementById('feedback').innerText = "Lösung: " + q.hint;
+        document.getElementById('feedback').style.color = "var(--primary)";
+        
+        const buttons = document.querySelectorAll('.option-btn');
+        buttons.forEach(btn => {
+            if (btn.innerText === q.correct) btn.classList.add('correct');
+        });
+        
+        finishQuestion();
+    }
+
+    function finishQuestion() {
+        canAnswer = false;
+        document.getElementById('next-btn').style.display = "inline-block";
+        document.getElementById('sol-btn').style.display = "none";
+    }
+
+    function nextQuestion() {
+        currentIdx++;
+        if (currentIdx < quizData.length) {
+            initQuiz();
+        } else {
+            showFinal();
+        }
+    }
+
+    function showFinal() {
+        document.getElementById('progress-fill').style.width = "100%";
+        document.querySelector('.quiz-container').innerHTML = `
+            <h1 style="color: var(--success)">Молодцы!</h1>
+            <p>Du hast alle Sätze mit den richtigen Endungen vervollständigt.</p>
+            <button class="btn btn-sol" style="margin-top: 20px;" onclick="location.reload()">Noch einmal spielen</button>
+        `;
+    }
+
+    initQuiz();
+</script>
+
+</body>
+</html>
