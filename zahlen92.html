@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch: Mehrteilige Zahlen (10 Aufgaben)</title>
+    <style>
+        :root {
+            --primary: #3498db;
+            --success: #27ae60;
+            --error: #e74c3c;
+            --bg: #f4f7f9;
+            --text: #2c3e50;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .quiz-container {
+            max-width: 600px;
+            width: 100%;
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .progress {
+            color: #888;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: var(--text);
+            margin-bottom: 20px;
+        }
+
+        .question-box {
+            font-size: 1.2rem;
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border-left: 5px solid var(--primary);
+            font-weight: 500;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .option-btn {
+            background: white;
+            border: 2px solid #ddd;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .option-btn:hover {
+            border-color: var(--primary);
+            background: #f0f7ff;
+        }
+
+        .option-btn.correct {
+            background-color: var(--success) !important;
+            border-color: var(--success) !important;
+            color: white;
+        }
+
+        .option-btn.wrong {
+            background-color: var(--error) !important;
+            border-color: var(--error) !important;
+            color: white;
+            animation: shake 0.4s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .feedback {
+            margin-top: 15px;
+            font-weight: bold;
+            min-height: 24px;
+        }
+
+        .controls {
+            margin-top: 25px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .btn-next { background: var(--text); color: white; display: none; }
+        .btn-sol { background: #95a5a6; color: white; }
+
+        @media (max-width: 500px) {
+            .option-btn { font-size: 1rem; padding: 14px; }
+            h1 { font-size: 1.2rem; }
+            .question-box { font-size: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="quiz-container">
+    <div class="progress" id="progress">Aufgabe 1 von 10</div>
+    <h1>Как это по-русски?</h1>
+    
+    <div class="question-box" id="question-text">
+        Wie heißt "der 21." auf Russisch?
+    </div>
+
+    <div class="options-grid" id="options">
+        <!-- Buttons werden hier geladen -->
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <div class="controls">
+        <button class="btn btn-sol" id="sol-btn" onclick="showSolution()">Lösung</button>
+        <button class="btn btn-next" id="next-btn" onclick="nextQuestion()">Nächste Aufgabe</button>
+    </div>
+</div>
+
+<script>
+    const quizData = [
+        {
+            q: "Wie heißt 'der 21.'?",
+            correct: "двадцать первый",
+            wrong: "двадцатый первый"
+        },
+        {
+            q: "Wie heißt 'der 145.'?",
+            correct: "сто сорок пятый",
+            wrong: "сотый сороковой пятый"
+        },
+        {
+            q: "Wie heißt 'der 111.'?",
+            correct: "сто одиннадцатый",
+            wrong: "сотый одиннадцатый"
+        },
+        {
+            q: "Wie heißt 'der 32.'?",
+            correct: "тридцать второй",
+            wrong: "тридцатый второй"
+        },
+        {
+            q: "Wie heißt 'der 55.'?",
+            correct: "пятьдесят пятый",
+            wrong: "пятидесятый пятый"
+        },
+        {
+            q: "Wie heißt 'der 102.'?",
+            correct: "сто второй",
+            wrong: "сотый второй"
+        },
+        {
+            q: "Wie heißt 'der 2040.'?",
+            correct: "две тысячи сороковой",
+            wrong: "две тысячный сороковой"
+        },
+        {
+            q: "Wie heißt 'der 73.'?",
+            correct: "семьдесят третий",
+            wrong: "семидесятый третий"
+        },
+        {
+            q: "Wie heißt 'der 99.'?",
+            correct: "девяносто девятый",
+            wrong: "девяностый девятый"
+        },
+        {
+            q: "Wie heißt 'der 1001.'?",
+            correct: "тысяча первый",
+            wrong: "тысячный первый"
+        }
+    ];
+
+    let currentIdx = 0;
+    let canAnswer = true;
+
+    function loadQuestion() {
+        canAnswer = true;
+        const q = quizData[currentIdx];
+        document.getElementById('progress').innerText = `Aufgabe ${currentIdx + 1} von ${quizData.length}`;
+        document.getElementById('question-text').innerText = q.q;
+        document.getElementById('feedback').innerText = "";
+        document.getElementById('next-btn').style.display = "none";
+        document.getElementById('sol-btn').style.display = "inline-block";
+        
+        const optionsDiv = document.getElementById('options');
+        optionsDiv.innerHTML = '';
+
+        // Antwortmöglichkeiten mischen
+        const choices = [q.correct, q.wrong].sort(() => Math.random() - 0.5);
+
+        choices.forEach(choice => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = choice;
+            btn.onclick = () => checkAnswer(choice, btn);
+            optionsDiv.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(selected, btn) {
+        if (!canAnswer) return;
+        
+        const q = quizData[currentIdx];
+        const feedback = document.getElementById('feedback');
+
+        if (selected === q.correct) {
+            btn.classList.add('correct');
+            feedback.innerText = "Правильно! (Richtig)";
+            feedback.style.color = "var(--success)";
+            canAnswer = false;
+            document.getElementById('next-btn').style.display = "inline-block";
+            document.getElementById('sol-btn').style.display = "none";
+        } else {
+            btn.classList.add('wrong');
+            feedback.innerText = "Falsch. Nur das letzte Wort wird zur Ordnungszahl!";
+            feedback.style.color = "var(--error)";
+            setTimeout(() => btn.classList.remove('wrong'), 500);
+        }
+    }
+
+    function showSolution() {
+        if (!canAnswer) return;
+        const q = quizData[currentIdx];
+        const buttons = document.querySelectorAll('.option-btn');
+        
+        buttons.forEach(btn => {
+            if (btn.innerText === q.correct) {
+                btn.classList.add('correct');
+            }
+        });
+        
+        document.getElementById('feedback').innerText = "Regel: Nur das letzte Wort ist eine Ordnungszahl.";
+        document.getElementById('feedback').style.color = "var(--primary)";
+        canAnswer = false;
+        document.getElementById('next-btn').style.display = "inline-block";
+        document.getElementById('sol-btn').style.display = "none";
+    }
+
+    function nextQuestion() {
+        currentIdx++;
+        if (currentIdx < quizData.length) {
+            loadQuestion();
+        } else {
+            showFinal();
+        }
+    }
+
+    function showFinal() {
+        document.querySelector('.quiz-container').innerHTML = `
+            <h1 style="color: var(--success)">Молодцы!</h1>
+            <p>Du hast alle 10 Aufgaben zur Bildung mehrteiliger Ordnungszahlen gemeistert.</p>
+            <button class="option-btn" style="width: auto; margin-top: 20px;" onclick="location.reload()">Noch einmal spielen</button>
+        `;
+    }
+
+    loadQuestion();
+</script>
+
+</body>
+</html>
