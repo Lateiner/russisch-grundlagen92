@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch: Kalender-Quiz</title>
+    <style>
+        :root {
+            --primary: #3498db;
+            --success: #27ae60;
+            --error: #e74c3c;
+            --bg: #f5f7fa;
+            --text: #2c3e50;
+            --calendar-border: #dcdde1;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .game-container {
+            max-width: 450px;
+            width: 100%;
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .task-area {
+            background: var(--primary);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .task-text {
+            font-size: 1.4rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .instruction {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        /* Kalender-Design */
+        .calendar-card {
+            border: 2px solid var(--calendar-border);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .calendar-header {
+            background: #f8f9fa;
+            padding: 10px;
+            font-weight: bold;
+            font-size: 1.2rem;
+            border-bottom: 2px solid var(--calendar-border);
+            color: var(--primary);
+            text-transform: capitalize;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            background: white;
+        }
+
+        .day-name {
+            font-size: 0.7rem;
+            padding: 8px 0;
+            background: #f1f2f6;
+            color: #7f8c8d;
+            border-bottom: 1px solid var(--calendar-border);
+            text-transform: uppercase;
+        }
+
+        .day-cell {
+            aspect-ratio: 1 / 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-right: 1px solid #f1f2f6;
+            border-bottom: 1px solid #f1f2f6;
+            font-weight: 500;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .day-cell:hover:not(.empty) {
+            background-color: #f0f7ff;
+        }
+
+        .day-cell.empty {
+            cursor: default;
+        }
+
+        .day-cell.correct {
+            background-color: var(--success) !important;
+            color: white;
+        }
+
+        .day-cell.wrong {
+            background-color: var(--error) !important;
+            color: white;
+            animation: shake 0.4s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-4px); }
+            75% { transform: translateX(4px); }
+        }
+
+        .feedback {
+            font-weight: bold;
+            min-height: 24px;
+            margin-bottom: 15px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: opacity 0.2s;
+        }
+
+        .btn-next { background: var(--text); color: white; display: none; }
+        .btn-sol { background: #95a5a6; color: white; }
+
+        @media (max-width: 400px) {
+            .task-text { font-size: 1.2rem; }
+            .day-cell { font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <div id="progress" style="font-size: 0.8rem; color: #888; margin-bottom: 10px;">Aufgabe 1 von 10</div>
+    
+    <div class="task-area">
+        <div class="instruction">Finde das Datum im Kalender:</div>
+        <div class="task-text" id="target-date">первое мая</div>
+    </div>
+
+    <div class="calendar-card">
+        <div class="calendar-header" id="month-name">Май</div>
+        <div class="calendar-grid">
+            <div class="day-name">Пн</div><div class="day-name">Вт</div>
+            <div class="day-name">Ср</div><div class="day-name">Чт</div>
+            <div class="day-name">Пт</div><div class="day-name">Сб</div>
+            <div class="day-name">Вс</div>
+            <!-- Tage werden per JS gefüllt -->
+            <div id="days-container" style="display: contents;"></div>
+        </div>
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <div class="controls">
+        <button class="btn btn-sol" id="sol-btn" onclick="showSolution()">Lösung</button>
+        <button class="btn btn-next" id="next-btn" onclick="nextQuestion()">Nächste Aufgabe</button>
+    </div>
+</div>
+
+<script>
+    const quizData = [
+        { task: "первое мая", day: 1, month: "Май", offset: 2 }, // Mi beginnt (Mai 2024 Beispiel)
+        { task: "восьмое марта", day: 8, month: "Март", offset: 4 },
+        { task: "тридцать первое декабря", day: 31, month: "Декабрь", offset: 6 },
+        { task: "первое января", day: 1, month: "Январь", offset: 0 },
+        { task: "девятое мая", day: 9, month: "Май", offset: 2 },
+        { task: "двенадцатое июня", day: 12, month: "Июнь", offset: 5 },
+        { task: "четвёртое июля", day: 4, month: "Июль", offset: 0 },
+        { task: "двадцать пятое декабря", day: 25, month: "Декабрь", offset: 6 },
+        { task: "четырнадцатое февраля", day: 14, month: "Февраль", offset: 3 },
+        { task: "первое сентября", day: 1, month: "Сентябрь", offset: 6 }
+    ];
+
+    let currentIdx = 0;
+    let canClick = true;
+
+    function initLevel() {
+        canClick = true;
+        const q = quizData[currentIdx];
+        document.getElementById('target-date').innerText = q.task;
+        document.getElementById('month-name').innerText = q.month;
+        document.getElementById('progress').innerText = `Aufgabe ${currentIdx + 1} von ${quizData.length}`;
+        document.getElementById('feedback').innerText = "";
+        document.getElementById('next-btn').style.display = "none";
+        document.getElementById('sol-btn').style.display = "inline-block";
+        
+        renderCalendar(q.offset, q.month);
+    }
+
+    function renderCalendar(offset, month) {
+        const container = document.getElementById('days-container');
+        container.innerHTML = '';
+        
+        // Leere Zellen für den Offset (Wochentag-Start)
+        for (let i = 0; i < offset; i++) {
+            const empty = document.createElement('div');
+            empty.className = 'day-cell empty';
+            container.appendChild(empty);
+        }
+        
+        // 31 Tage (vereinfacht für das Quiz)
+        for (let d = 1; d <= 31; d++) {
+            // Manche Monate haben weniger Tage, wir begrenzen hier logisch für das Quiz
+            if (month === "Февраль" && d > 28) break;
+            if (["Апрель", "Июнь", "Сентябрь", "Ноябрь"].includes(month) && d > 30) break;
+
+            const cell = document.createElement('div');
+            cell.className = 'day-cell';
+            cell.innerText = d;
+            cell.onclick = () => checkAnswer(d, cell);
+            container.appendChild(cell);
+        }
+    }
+
+    function checkAnswer(selectedDay, cell) {
+        if (!canClick) return;
+        
+        const q = quizData[currentIdx];
+        if (selectedDay === q.day) {
+            cell.classList.add('correct');
+            document.getElementById('feedback').innerText = "Правильно! (Richtig)";
+            document.getElementById('feedback').style.color = "var(--success)";
+            finishLevel();
+        } else {
+            cell.classList.add('wrong');
+            document.getElementById('feedback').innerText = "Попробуйте ещё раз!";
+            document.getElementById('feedback').style.color = "var(--error)";
+            setTimeout(() => cell.classList.remove('wrong'), 500);
+        }
+    }
+
+    function showSolution() {
+        if (!canClick) return;
+        const q = quizData[currentIdx];
+        const cells = document.querySelectorAll('.day-cell');
+        
+        cells.forEach(cell => {
+            if (parseInt(cell.innerText) === q.day && !cell.classList.contains('empty')) {
+                cell.classList.add('correct');
+            }
+        });
+        
+        document.getElementById('feedback').innerText = "Das ist das gesuchte Datum.";
+        document.getElementById('feedback').style.color = "var(--primary)";
+        finishLevel();
+    }
+
+    function finishLevel() {
+        canClick = false;
+        document.getElementById('next-btn').style.display = "inline-block";
+        document.getElementById('sol-btn').style.display = "none";
+    }
+
+    function nextQuestion() {
+        currentIdx++;
+        if (currentIdx < quizData.length) {
+            initLevel();
+        } else {
+            showFinal();
+        }
+    }
+
+    function showFinal() {
+        document.querySelector('.game-container').innerHTML = `
+            <h1 style="color: var(--success)">Молодцы!</h1>
+            <p>Du kannst nun Daten mit russischen Ordnungszahlen im Kalender finden.</p>
+            <button class="btn" style="background:var(--text); color:white; margin-top:20px;" onclick="location.reload()">Noch einmal spielen</button>
+        `;
+    }
+
+    initLevel();
+</script>
+
+</body>
+</html>
