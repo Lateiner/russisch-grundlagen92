@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch: Rechtschreibung der Zahlen</title>
+    <style>
+        :root {
+            --primary: #3498db;
+            --success: #27ae60;
+            --error: #e74c3c;
+            --bg: #f5f7fa;
+            --text: #2c3e50;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .quiz-container {
+            max-width: 550px;
+            width: 100%;
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .progress {
+            color: #888;
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+
+        h1 {
+            font-size: 1.4rem;
+            color: var(--text);
+            margin-bottom: 10px;
+        }
+
+        p.instruction {
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        .question-box {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 25px;
+            border: 2px solid #eee;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+        }
+
+        .option-btn {
+            background: white;
+            border: 2px solid #ddd;
+            padding: 15px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .option-btn:hover {
+            border-color: var(--primary);
+            background-color: #f0f7ff;
+        }
+
+        .option-btn.correct {
+            background-color: var(--success) !important;
+            border-color: var(--success) !important;
+            color: white;
+        }
+
+        .option-btn.wrong {
+            background-color: var(--error) !important;
+            border-color: var(--error) !important;
+            color: white;
+            animation: shake 0.4s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .feedback {
+            margin-top: 20px;
+            font-weight: bold;
+            height: 24px;
+        }
+
+        .controls {
+            margin-top: 25px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            display: none;
+        }
+
+        .btn-next { background: var(--text); color: white; }
+        .btn-sol { background: #95a5a6; color: white; display: inline-block; }
+
+        @media (min-width: 450px) {
+            .options-grid { grid-template-columns: 1fr 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="quiz-container">
+    <div class="progress" id="progress">Aufgabe 1 von 8</div>
+    <h1>Правописание (Rechtschreibung)</h1>
+    <p class="instruction">Wähle die korrekte Schreibweise der Ordnungszahl:</p>
+
+    <div class="question-box" id="target-number">1 000 000.</div>
+
+    <div class="options-grid" id="options"></div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <div class="controls">
+        <button class="btn btn-sol" id="sol-btn" onclick="showSolution()">Lösung</button>
+        <button class="btn btn-next" id="next-btn" onclick="nextQuestion()">Nächste Aufgabe</button>
+    </div>
+</div>
+
+<script>
+    const quizData = [
+        {
+            num: "1 000 000.",
+            correct: "миллионный",
+            options: ["миллионный", "милионный", "миллионый", "милионый"]
+        },
+        {
+            num: "1 000 000 000.",
+            correct: "миллиардный",
+            options: ["миллиардный", "милиардный", "миллиардый"]
+        },
+        {
+            num: "11.",
+            correct: "одиннадцатый",
+            options: ["одиннадцатый", "одинадцатый", "одиннацатый"]
+        },
+        {
+            num: "200.",
+            correct: "двухсотый",
+            options: ["двухсотый", "двасотый", "двусотый"]
+        },
+        {
+            num: "500.",
+            correct: "пятисотый",
+            options: ["пятисотый", "пятьсотый", "пятыйсотый"]
+        },
+        {
+            num: "90.",
+            correct: "девяностый",
+            options: ["девяностый", "девяностатый", "девятидесятый"]
+        },
+        {
+            num: "40.",
+            correct: "сороковой",
+            options: ["сороковой", "сороковый", "сорокный"]
+        },
+        {
+            num: "1000.",
+            correct: "тысячный",
+            options: ["тысячный", "тысичный", "тысечный"]
+        }
+    ];
+
+    let currentIdx = 0;
+    let canAnswer = true;
+
+    function initQuiz() {
+        canAnswer = true;
+        const q = quizData[currentIdx];
+        document.getElementById('progress').innerText = `Aufgabe ${currentIdx + 1} von ${quizData.length}`;
+        document.getElementById('target-number').innerText = q.num;
+        document.getElementById('feedback').innerText = "";
+        document.getElementById('next-btn').style.display = "none";
+        document.getElementById('sol-btn').style.display = "inline-block";
+        
+        const optionsDiv = document.getElementById('options');
+        optionsDiv.innerHTML = '';
+
+        // Optionen mischen
+        const shuffled = [...q.options].sort(() => Math.random() - 0.5);
+
+        shuffled.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt;
+            btn.onclick = () => checkAnswer(opt, btn);
+            optionsDiv.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(selected, btn) {
+        if (!canAnswer) return;
+        
+        const q = quizData[currentIdx];
+        if (selected === q.correct) {
+            btn.classList.add('correct');
+            document.getElementById('feedback').innerText = "Правильно!";
+            document.getElementById('feedback').style.color = "var(--success)";
+            canAnswer = false;
+            document.getElementById('next-btn').style.display = "inline-block";
+            document.getElementById('sol-btn').style.display = "none";
+        } else {
+            btn.classList.add('wrong');
+            document.getElementById('feedback').innerText = "Попробуйте ещё раз!";
+            document.getElementById('feedback').style.color = "var(--error)";
+            setTimeout(() => btn.classList.remove('wrong'), 500);
+        }
+    }
+
+    function showSolution() {
+        if (!canAnswer) return;
+        const q = quizData[currentIdx];
+        const buttons = document.querySelectorAll('.option-btn');
+        
+        buttons.forEach(btn => {
+            if (btn.innerText === q.correct) {
+                btn.classList.add('correct');
+            }
+        });
+        
+        document.getElementById('feedback').innerText = "Hier ist die richtige Schreibweise.";
+        document.getElementById('feedback').style.color = "var(--primary)";
+        canAnswer = false;
+        document.getElementById('next-btn').style.display = "inline-block";
+        document.getElementById('sol-btn').style.display = "none";
+    }
+
+    function nextQuestion() {
+        currentIdx++;
+        if (currentIdx < quizData.length) {
+            initQuiz();
+        } else {
+            showFinal();
+        }
+    }
+
+    function showFinal() {
+        document.querySelector('.quiz-container').innerHTML = `
+            <h1 style="color: var(--success)">Молодцы!</h1>
+            <p>Du beherrschst nun die Rechtschreibung der hohen Ordnungszahlen.</p>
+            <button class="option-btn" style="width: auto; margin-top: 20px;" onclick="location.reload()">Noch einmal spielen</button>
+        `;
+    }
+
+    initQuiz();
+</script>
+
+</body>
+</html>
