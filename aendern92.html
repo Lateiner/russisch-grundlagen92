@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch: Veränderungs-Detektiv (8 Aufgaben)</title>
+    <style>
+        :root {
+            --primary: #3498db;
+            --success: #27ae60;
+            --error: #e74c3c;
+            --bg: #f8f9fa;
+            --text: #2c3e50;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .game-container {
+            max-width: 700px;
+            width: 100%;
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .progress {
+            color: #888;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: var(--text);
+            margin-bottom: 10px;
+        }
+
+        .instruction {
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.4;
+        }
+
+        .number-display {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+            padding: 25px;
+            background: #f0f7ff;
+            border-radius: 15px;
+            border: 2px solid #e1eefb;
+        }
+
+        .word-btn {
+            background: white;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .word-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .word-btn.correct {
+            background-color: var(--success) !important;
+            border-color: var(--success) !important;
+            color: white !important;
+            transform: scale(1.05);
+        }
+
+        .word-btn.wrong {
+            background-color: var(--error) !important;
+            border-color: var(--error) !important;
+            color: white !important;
+            animation: shake 0.4s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .feedback {
+            height: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .btn-next { background: var(--text); color: white; display: none; }
+        .btn-sol { background: #95a5a6; color: white; }
+
+        @media (max-width: 500px) {
+            .word-btn { font-size: 1.05rem; padding: 10px 12px; }
+            h1 { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <div class="progress" id="progress">Aufgabe 1 von 8</div>
+    <h1>Детектив изменений</h1>
+    <p class="instruction">
+        Klicke auf das Wort, das dekliniert wird (sich bei Fall, Geschlecht oder Zahl verändert).
+    </p>
+
+    <div class="number-display" id="number-container"></div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <div class="controls">
+        <button class="btn btn-sol" id="sol-btn" onclick="showSolution()">Lösung</button>
+        <button class="btn btn-next" id="next-btn" onclick="nextQuestion()">Nächste Zahl</button>
+    </div>
+</div>
+
+<script>
+    // Daten mit 8 Aufgaben
+    const rawData = [
+        { words: ["двадцать", "первый"] },
+        { words: ["сто", "одиннадцатый"] },
+        { words: ["тысяча", "сорок", "пятый"] },
+        { words: ["две", "тысячи", "сороковой"] },
+        { words: ["три", "миллиона", "девятый"] },
+        { words: ["двести", "пятьдесят", "шестой"] },
+        { words: ["тысяча", "девятьсот", "восемьдесят", "восьмой"] },
+        { words: ["сто", "пятьдесят", "первый"] }
+    ];
+
+    // Aufgaben beim Start mischen
+    let quizData = [...rawData].sort(() => Math.random() - 0.5);
+    let currentIdx = 0;
+    let canClick = true;
+
+    function loadQuestion() {
+        canClick = true;
+        const q = quizData[currentIdx];
+        const targetIdx = q.words.length - 1; // Regel: Immer das letzte Wort
+        
+        document.getElementById('progress').innerText = `Aufgabe ${currentIdx + 1} von ${quizData.length}`;
+        document.getElementById('feedback').innerText = "";
+        document.getElementById('next-btn').style.display = "none";
+        document.getElementById('sol-btn').style.display = "inline-block";
+        
+        const container = document.getElementById('number-container');
+        container.innerHTML = '';
+
+        q.words.forEach((word, index) => {
+            const btn = document.createElement('button');
+            btn.className = 'word-btn';
+            btn.innerText = word;
+            btn.onclick = () => checkAnswer(index, targetIdx, btn);
+            container.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(index, targetIdx, btn) {
+        if (!canClick) return;
+
+        const feedback = document.getElementById('feedback');
+
+        if (index === targetIdx) {
+            btn.classList.add('correct');
+            feedback.innerText = "Правильно! Nur das letzte Wort ändert sich.";
+            feedback.style.color = "var(--success)";
+            canClick = false;
+            document.getElementById('next-btn').style.display = "inline-block";
+            document.getElementById('sol-btn').style.display = "none";
+        } else {
+            btn.classList.add('wrong');
+            feedback.innerText = "Falsch. Dieses Wort bleibt unverändert.";
+            feedback.style.color = "var(--error)";
+            setTimeout(() => btn.classList.remove('wrong'), 500);
+        }
+    }
+
+    function showSolution() {
+        if (!canClick) return;
+        const q = quizData[currentIdx];
+        const buttons = document.querySelectorAll('.word-btn');
+        const targetIdx = q.words.length - 1;
+        
+        buttons[targetIdx].classList.add('correct');
+        
+        document.getElementById('feedback').innerText = "Regel: Nur das letzte Wort wird dekliniert!";
+        document.getElementById('feedback').style.color = "var(--primary)";
+        canClick = false;
+        document.getElementById('next-btn').style.display = "inline-block";
+        document.getElementById('sol-btn').style.display = "none";
+    }
+
+    function nextQuestion() {
+        currentIdx++;
+        if (currentIdx < quizData.length) {
+            loadQuestion();
+        } else {
+            showFinal();
+        }
+    }
+
+    function showFinal() {
+        document.querySelector('.game-container').innerHTML = `
+            <h1 style="color: var(--success)">Молодцы!</h1>
+            <p>Du hast das Prinzip verstanden: Bei mehrteiligen russischen Ordnungszahlen ist immer nur das letzte Wort für die Deklination zuständig.</p>
+            <button class="btn" style="background:var(--text); color:white; margin-top:20px;" onclick="location.reload()">Noch einmal spielen</button>
+        `;
+    }
+
+    loadQuestion();
+</script>
+
+</body>
+</html>
