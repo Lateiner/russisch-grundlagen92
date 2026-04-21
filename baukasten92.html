@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch: Baukasten hohe Zahlen (10 Aufgaben)</title>
+    <style>
+        :root {
+            --primary: #3498db;
+            --success: #27ae60;
+            --error: #e74c3c;
+            --bg: #f8f9fa;
+            --text: #2c3e50;
+            --block-bg: #ffffff;
+            --sol-color: #7f8c8d;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .game-container {
+            max-width: 650px;
+            width: 100%;
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .goal-box {
+            background: var(--text);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+        }
+
+        .goal-number {
+            font-size: 2.2rem;
+            font-weight: bold;
+            display: block;
+        }
+
+        .construction-area {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            min-height: 65px;
+            margin-bottom: 25px;
+            padding: 10px;
+            border-bottom: 3px solid #eee;
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .block-pool {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .block {
+            background: var(--block-bg);
+            border: 2px solid #ddd;
+            padding: 12px 8px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: all 0.2s ease;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .block:hover { border-color: var(--primary); background: #f0f7ff; }
+
+        .feedback {
+            height: 24px;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            transition: opacity 0.2s;
+        }
+
+        .btn-next { background: var(--success); color: white; display: none; }
+        .btn-sol { background: var(--sol-color); color: white; }
+        .btn:hover { opacity: 0.9; }
+
+        .part-display {
+            padding: 5px 12px;
+            background: #e1f0fa;
+            border-radius: 5px;
+            animation: pop 0.3s ease;
+        }
+
+        .part-correct { background: var(--success) !important; color: white; }
+
+        @media (min-width: 500px) {
+            .block-pool { grid-template-columns: repeat(4, 1fr); }
+        }
+
+        @keyframes pop {
+            0% { transform: scale(0.8); }
+            100% { transform: scale(1); }
+        }
+
+        .progress { color: #888; font-size: 0.9rem; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <div class="progress" id="progress">Aufgabe 1 von 10</div>
+    <div class="goal-box">
+        <p>Bilde die Ordnungszahl für:</p>
+        <span class="goal-number" id="target-display">200.</span>
+    </div>
+
+    <div class="construction-area" id="construction-area">
+        <span style="color: #ccc">Bausteine wählen...</span>
+    </div>
+
+    <div class="block-pool" id="block-pool"></div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <div class="controls">
+        <button class="btn btn-sol" id="sol-btn" onclick="showSolution()">Lösung</button>
+        <button class="btn btn-next" id="next-btn" onclick="nextLevel()">Nächste Zahl</button>
+    </div>
+</div>
+
+<script>
+    const levels = [
+        { target: "200.", parts: ["двух", "сотый"], full: "двухсотый" },
+        { target: "500.", parts: ["пяти", "сотый"], full: "пятисотый" },
+        { target: "3 000.", parts: ["трёх", "тысячный"], full: "трёхтысячный" },
+        { target: "9 000.", parts: ["девяти", "тысячный"], full: "девятитысячный" },
+        { target: "1 000 000.", parts: ["миллион", "ный"], full: "миллионный" },
+        { target: "400.", parts: ["четырёх", "сотый"], full: "четырёхсотый" },
+        { target: "8 000.", parts: ["восьми", "тысячный"], full: "восьмитысячный" },
+        { target: "600.", parts: ["шести", "сотый"], full: "шестисотый" },
+        { target: "7 000.", parts: ["семи", "тысячный"], full: "семитысячный" },
+        { target: "1 000 000 000.", parts: ["миллиард", "ный"], full: "миллиардный" }
+    ];
+
+    const allPrefixes = ["двух", "трёх", "четырёх", "пяти", "шести", "семи", "восьми", "девяти", "миллион", "миллиард"];
+    const allSuffixes = ["сотый", "тысячный", "ный"];
+
+    let currentLevel = 0;
+    let selectedParts = [];
+    let isLocked = false;
+
+    function initLevel() {
+        isLocked = false;
+        const level = levels[currentLevel];
+        document.getElementById('progress').innerText = `Aufgabe ${currentLevel + 1} von ${levels.length}`;
+        document.getElementById('target-display').innerText = level.target;
+        document.getElementById('construction-area').innerHTML = '<span style="color: #ccc">Bausteine wählen...</span>';
+        document.getElementById('feedback').innerText = '';
+        document.getElementById('next-btn').style.display = 'none';
+        document.getElementById('sol-btn').style.display = 'inline-block';
+        selectedParts = [];
+        renderPool();
+    }
+
+    function renderPool() {
+        const pool = document.getElementById('block-pool');
+        pool.innerHTML = '';
+        // Wir mischen alle möglichen Teile für die Herausforderung
+        const combined = [...allPrefixes, ...allSuffixes].sort(() => Math.random() - 0.5);
+        combined.forEach(text => {
+            const btn = document.createElement('div');
+            btn.className = 'block';
+            btn.innerText = text;
+            btn.onclick = () => !isLocked && addPart(text, btn);
+            pool.appendChild(btn);
+        });
+    }
+
+    function addPart(text, element) {
+        if (selectedParts.length >= 2) return;
+        selectedParts.push(text);
+        updateDisplay();
+        element.style.visibility = 'hidden';
+
+        if (selectedParts.length === 2) {
+            checkResult();
+        }
+    }
+
+    function updateDisplay(isCorrect = false) {
+        const area = document.getElementById('construction-area');
+        const cssClass = isCorrect ? 'part-display part-correct' : 'part-display';
+        area.innerHTML = selectedParts.map(p => `<span class="${cssClass}">${p}</span>`).join(' + ');
+    }
+
+    function checkResult() {
+        const level = levels[currentLevel];
+        const result = selectedParts.join('');
+        const feedback = document.getElementById('feedback');
+
+        if (result === level.full) {
+            finishLevel("Правильно!");
+        } else {
+            isLocked = true;
+            feedback.innerText = "Попробуйте ещё раз!";
+            feedback.style.color = "var(--error)";
+            setTimeout(() => { if(!isLocked) return; initLevel(); }, 1200);
+        }
+    }
+
+    function showSolution() {
+        isLocked = true;
+        const level = levels[currentLevel];
+        selectedParts = [...level.parts];
+        updateDisplay(true);
+        finishLevel("Вот правильный ответ:");
+    }
+
+    function finishLevel(msg) {
+        isLocked = true;
+        const feedback = document.getElementById('feedback');
+        feedback.innerText = msg;
+        feedback.style.color = "var(--success)";
+        document.getElementById('next-btn').style.display = 'inline-block';
+        document.getElementById('sol-btn').style.display = 'none';
+    }
+
+    function nextLevel() {
+        currentLevel++;
+        if (currentLevel < levels.length) {
+            initLevel();
+        } else {
+            showEnd();
+        }
+    }
+
+    function showEnd() {
+        document.querySelector('.game-container').innerHTML = `
+            <h1 style="color: var(--success)">Молодцы!</h1>
+            <p>Du hast alle 10 hohen Ordnungszahlen erfolgreich gemeistert.</p>
+            <button class="btn btn-sol" style="margin-top:20px" onclick="location.reload()">Noch einmal spielen</button>
+        `;
+    }
+
+    initLevel();
+</script>
+
+</body>
+</html>
