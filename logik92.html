@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch: Logik-Match Zahlen</title>
+    <style>
+        :root {
+            --primary: #3498db;
+            --success: #27ae60;
+            --error: #e74c3c;
+            --bg: #f4f7f6;
+            --text: #2c3e50;
+            --selected: #f1c40f;
+            /* Farben für Lösungspaare */
+            --p-0: #ffadad; --p-1: #ffd6a5; --p-2: #fdffb6;
+            --p-3: #caffbf; --p-4: #9bf6ff; --p-5: #a0c4ff;
+            --p-6: #bdb2ff; --p-7: #ffc6ff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-container {
+            max-width: 800px;
+            width: 100%;
+            background: white;
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        h1 { font-size: 1.5rem; color: var(--text); margin-bottom: 10px; }
+        p.desc { color: #666; margin-bottom: 25px; font-size: 0.95rem; }
+
+        .matching-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .card {
+            background: #fff;
+            border: 2px solid #ddd;
+            padding: 15px 10px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            user-select: none;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .card:hover { border-color: var(--primary); background: #f0f8ff; }
+
+        .card.selected {
+            border-color: var(--selected);
+            background-color: #fff9e6;
+            transform: scale(1.03);
+        }
+
+        .card.matched {
+            opacity: 0;
+            pointer-events: none;
+            transform: scale(0.9);
+            transition: opacity 1s ease, transform 1s ease;
+        }
+
+        .card.wrong {
+            border-color: var(--error);
+            background-color: #fdf2f2;
+            animation: shake 0.4s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        /* Lösungsfarben */
+        .sol-0 { background-color: var(--p-0) !important; }
+        .sol-1 { background-color: var(--p-1) !important; }
+        .sol-2 { background-color: var(--p-2) !important; }
+        .sol-3 { background-color: var(--p-3) !important; }
+        .sol-4 { background-color: var(--p-4) !important; }
+        .sol-5 { background-color: var(--p-5) !important; }
+        .sol-6 { background-color: var(--p-6) !important; }
+        .sol-7 { background-color: var(--p-7) !important; }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            transition: opacity 0.2s;
+        }
+
+        .btn-reset { background: #eee; color: #333; }
+        .btn-solution { background: var(--primary); color: white; }
+
+        .feedback {
+            margin-top: 15px;
+            font-weight: bold;
+            min-height: 1.2em;
+        }
+
+        @media (max-width: 600px) {
+            .matching-grid { gap: 10px; }
+            .card { font-size: 0.95rem; padding: 10px 5px; }
+            h1 { font-size: 1.3rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container" id="main-game">
+    <h1>Логические пары: Числа</h1>
+    <p class="desc">
+        Klicke links auf die Grundzahl und rechts auf die passende Ordnungszahl.<br>
+        (Beispiel: сто -> сотый)
+    </p>
+
+    <div class="matching-grid">
+        <div class="column" id="left-col"></div>
+        <div class="column" id="right-col"></div>
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <div class="controls">
+        <button class="btn btn-reset" onclick="location.reload()">Neu starten</button>
+        <button class="btn btn-solution" id="sol-btn" onclick="toggleSolution()">Lösung</button>
+    </div>
+</div>
+
+<script>
+    const pairs = [
+        { left: "сто", right: "сотый", id: 0 },
+        { left: "двести", right: "двухсотый", id: 1 },
+        { left: "триста", right: "трёхсотый", id: 2 },
+        { left: "четыреста", right: "четырёхсотый", id: 3 },
+        { left: "пятьсот", right: "пятисотый", id: 4 },
+        { left: "тысяча", right: "тысячный", id: 5 },
+        { left: "миллион", right: "миллионный", id: 6 },
+        { left: "миллиард", right: "миллиардный", id: 7 }
+    ];
+
+    let selectedLeft = null;
+    let matchesFound = 0;
+    let isSolutionMode = false;
+
+    function initGame() {
+        const leftCol = document.getElementById('left-col');
+        const rightCol = document.getElementById('right-col');
+
+        const shuffledLeft = [...pairs].sort(() => Math.random() - 0.5);
+        const shuffledRight = [...pairs].sort(() => Math.random() - 0.5);
+
+        shuffledLeft.forEach(p => {
+            const div = document.createElement('div');
+            div.className = 'card';
+            div.id = `left-${p.id}`;
+            div.innerText = p.left;
+            div.onclick = () => selectLeft(p.id, div);
+            leftCol.appendChild(div);
+        });
+
+        shuffledRight.forEach(p => {
+            const div = document.createElement('div');
+            div.className = 'card';
+            div.id = `right-${p.id}`;
+            div.innerText = p.right;
+            div.onclick = () => selectRight(p.id, div);
+            rightCol.appendChild(div);
+        });
+    }
+
+    function selectLeft(id, element) {
+        if (isSolutionMode || element.classList.contains('matched')) return;
+        document.querySelectorAll('#left-col .card').forEach(c => c.classList.remove('selected'));
+        selectedLeft = id;
+        element.classList.add('selected');
+    }
+
+    function selectRight(id, element) {
+        if (isSolutionMode || element.classList.contains('matched') || selectedLeft === null) return;
+
+        const leftEl = document.getElementById(`left-${selectedLeft}`);
+        
+        if (selectedLeft === id) {
+            // Treffer
+            leftEl.classList.remove('selected');
+            leftEl.classList.add('matched');
+            element.classList.add('matched');
+            selectedLeft = null;
+            matchesFound++;
+            setFeedback("Правильно!", "var(--success)");
+            if (matchesFound === pairs.length) {
+                setFeedback("Молодцы! Вы всё нашли!", "var(--success)");
+            }
+        } else {
+            // Fehler
+            element.classList.add('wrong');
+            setFeedback("Попробуйте ещё раз!", "var(--error)");
+            setTimeout(() => element.classList.remove('wrong'), 500);
+        }
+    }
+
+    function toggleSolution() {
+        isSolutionMode = !isSolutionMode;
+        const btn = document.getElementById('sol-btn');
+        
+        pairs.forEach(p => {
+            const l = document.getElementById(`left-${p.id}`);
+            const r = document.getElementById(`right-${p.id}`);
+            
+            if (isSolutionMode) {
+                l.classList.remove('matched', 'selected');
+                r.classList.remove('matched', 'selected');
+                l.classList.add(`sol-${p.id}`);
+                r.classList.add(`sol-${p.id}`);
+                btn.innerText = "Zurück";
+            } else {
+                l.classList.remove(`sol-${p.id}`);
+                r.classList.remove(`sol-${p.id}`);
+                btn.innerText = "Lösung";
+                // Falls es vorher schon gematcht war, im echten Spielzustand wieder ausblenden
+                // (Einfachheitshalber laden wir hier keine Zustände nach, sondern lassen das Spiel offen)
+            }
+        });
+    }
+
+    function setFeedback(txt, color) {
+        const fb = document.getElementById('feedback');
+        fb.innerText = txt;
+        fb.style.color = color;
+    }
+
+    initGame();
+</script>
+
+</body>
+</html>
