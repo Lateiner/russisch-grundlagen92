@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch: Bild-Wort-Paare</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --success-color: #27ae60;
+            --error-color: #e74c3c;
+            --bg-color: #f8f9fa;
+            --text-color: #2c3e50;
+            /* Farben für die Lösungskennzeichnung */
+            --pair-1: #ffadad; --pair-2: #ffd6a5; --pair-3: #fdffb6;
+            --pair-4: #caffbf; --pair-5: #9bf6ff; --pair-6: #a0c4ff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .game-container {
+            max-width: 600px;
+            width: 100%;
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .matching-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .card {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            padding: 15px;
+            cursor: pointer;
+            transition: opacity 1.2s ease, transform 0.3s ease, background-color 0.4s ease;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 60px;
+            font-weight: bold;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .card-img { font-size: 2rem; }
+        .card-word { font-size: 1.2rem; }
+
+        /* Status-Klassen */
+        .card.selected {
+            border-color: var(--primary-color);
+            background-color: #ebf5ff;
+            transform: scale(1.05);
+        }
+
+        .card.correct {
+            border-color: var(--success-color);
+            background-color: #eafaf1;
+            pointer-events: none; /* Nicht mehr anklickbar */
+        }
+
+        .card.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .card.wrong {
+            border-color: var(--error-color);
+            background-color: #fdf2f2;
+            animation: shake 0.4s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        /* Farbcodes für die Lösung */
+        .solution-1 { background-color: var(--pair-1) !important; border-color: #ff8585; }
+        .solution-2 { background-color: var(--pair-2) !important; border-color: #ffbd6e; }
+        .solution-3 { background-color: var(--pair-3) !important; border-color: #e2e600; }
+        .solution-4 { background-color: var(--pair-4) !important; border-color: #8ce67a; }
+        .solution-5 { background-color: var(--pair-5) !important; border-color: #5ce9f8; }
+        .solution-6 { background-color: var(--pair-6) !important; border-color: #76a8ff; }
+
+        .controls {
+            margin-top: 30px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: opacity 0.2s;
+        }
+
+        .btn-reset { background: #eee; color: #333; }
+        .btn-solution { background: var(--primary-color); color: white; }
+        button:hover { opacity: 0.8; }
+
+        .feedback {
+            margin-top: 15px;
+            font-weight: bold;
+            min-height: 1.2em;
+        }
+
+        @media (max-width: 500px) {
+            .card { min-height: 50px; font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <h2 id="title">Порядковые числительные</h2>
+    <p id="instr">Klicke auf ein Bild, dann auf das Wort.</p>
+
+    <div class="matching-grid">
+        <div class="column" id="image-column"></div>
+        <div class="column" id="word-column"></div>
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <div class="controls">
+        <button class="btn-reset" onclick="location.reload()">Neu starten</button>
+        <button class="btn-solution" id="solution-btn" onclick="toggleSolution()">Lösung</button>
+    </div>
+</div>
+
+<script>
+    const pairs = [
+        { id: 1, img: "🥇👩", word: "первая" },
+        { id: 2, img: "🥈👨", word: "второй" },
+        { id: 3, img: "🥉📦", word: "третье" },
+        { id: 4, img: "👣", word: "первые" },
+        { id: 5, img: "📅", word: "пятый" },
+        { id: 6, img: "📄", word: "десятая" }
+    ];
+
+    let selectedImgId = null;
+    let matchesFound = 0;
+    let isSolutionMode = false;
+
+    function initGame() {
+        const imageColumn = document.getElementById('image-column');
+        const wordColumn = document.getElementById('word-column');
+
+        const shuffledImages = [...pairs].sort(() => Math.random() - 0.5);
+        const shuffledWords = [...pairs].sort(() => Math.random() - 0.5);
+
+        shuffledImages.forEach(p => createImageCard(p, imageColumn));
+        shuffledWords.forEach(p => createWordCard(p, wordColumn));
+    }
+
+    function createImageCard(pair, container) {
+        const div = document.createElement('div');
+        div.className = `card card-img pair-id-${pair.id}`;
+        div.id = `img-${pair.id}`;
+        div.innerHTML = pair.img;
+        div.onclick = () => !isSolutionMode && selectImage(pair.id);
+        container.appendChild(div);
+    }
+
+    function createWordCard(pair, container) {
+        const div = document.createElement('div');
+        div.className = `card card-word pair-id-${pair.id}`;
+        div.id = `word-${pair.id}`;
+        div.innerHTML = pair.word;
+        div.onclick = () => !isSolutionMode && selectWord(pair.id);
+        container.appendChild(div);
+    }
+
+    function selectImage(id) {
+        if (document.getElementById(`img-${id}`).classList.contains('hidden')) return;
+        document.querySelectorAll('.card-img').forEach(c => c.classList.remove('selected'));
+        selectedImgId = id;
+        document.getElementById(`img-${id}`).classList.add('selected');
+        setFeedback("Suche das passende Wort!", "var(--primary-color)");
+    }
+
+    function selectWord(id) {
+        if (!selectedImgId || document.getElementById(`word-${id}`).classList.contains('hidden')) return;
+
+        const imgEl = document.getElementById(`img-${selectedImgId}`);
+        const wordEl = document.getElementById(`word-${id}`);
+
+        if (selectedImgId === id) {
+            imgEl.classList.remove('selected');
+            imgEl.classList.add('correct');
+            wordEl.classList.add('correct');
+            setFeedback("Правильно!", "var(--success-color)");
+            
+            // Langsames Verschwinden nach kurzem Zeigen
+            setTimeout(() => {
+                imgEl.classList.add('hidden');
+                wordEl.classList.add('hidden');
+                matchesFound++;
+                if (matchesFound === pairs.length) {
+                    setFeedback("Молодцы! Alle Paare gefunden.", "var(--success-color)");
+                }
+            }, 800);
+            
+            selectedImgId = null;
+        } else {
+            wordEl.classList.add('wrong');
+            setFeedback("Попробуйте ещё раз!", "var(--error-color)");
+            setTimeout(() => wordEl.classList.remove('wrong'), 500);
+        }
+    }
+
+    function toggleSolution() {
+        isSolutionMode = !isSolutionMode;
+        const btn = document.getElementById('solution-btn');
+        
+        if (isSolutionMode) {
+            btn.innerText = "Zurück";
+            setFeedback("Lösung angezeigt (farblich sortiert)", "#555");
+            pairs.forEach(p => {
+                const img = document.getElementById(`img-${p.id}`);
+                const word = document.getElementById(`word-${p.id}`);
+                img.classList.remove('hidden', 'selected');
+                word.classList.remove('hidden', 'selected');
+                img.classList.add(`solution-${p.id}`);
+                word.classList.add(`solution-${p.id}`);
+            });
+        } else {
+            btn.innerText = "Lösung";
+            setFeedback("", "");
+            pairs.forEach(p => {
+                const img = document.getElementById(`img-${p.id}`);
+                const word = document.getElementById(`word-${p.id}`);
+                img.classList.remove(`solution-${p.id}`);
+                word.classList.remove(`solution-${p.id}`);
+                // Falls es vor der Lösung schon korrekt war, wieder verstecken
+                if(img.classList.contains('correct')) {
+                    img.classList.add('hidden');
+                    word.classList.add('hidden');
+                }
+            });
+        }
+    }
+
+    function setFeedback(text, color) {
+        const fb = document.getElementById('feedback');
+        fb.innerText = text;
+        fb.style.color = color;
+    }
+
+    initGame();
+</script>
+
+</body>
+</html>
