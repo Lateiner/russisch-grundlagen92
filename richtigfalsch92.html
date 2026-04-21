@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch: Besonderheiten-Check</title>
+    <style>
+        :root {
+            --primary-blue: #3498db;
+            --dark-blue: #2c3e50;
+            --success-green: #2ecc71;
+            --error-red: #e74c3c;
+            --bg-color: #f0f2f5;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .quiz-container {
+            background: white;
+            max-width: 600px;
+            width: 100%;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: #eee;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        #progress-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--primary-blue);
+            transition: width 0.3s ease;
+        }
+
+        .question-box {
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+
+        #statement {
+            font-size: 1.25rem;
+            color: var(--dark-blue);
+            line-height: 1.5;
+            font-weight: 500;
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .quiz-btn {
+            padding: 20px;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s;
+            color: white;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn-true { background-color: var(--success-green); }
+        .btn-false { background-color: var(--error-red); }
+
+        .quiz-btn:active { transform: scale(0.95); }
+
+        .feedback-box {
+            margin-top: 25px;
+            padding: 20px;
+            border-radius: 12px;
+            display: none;
+            text-align: left;
+            animation: fadeIn 0.4s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .feedback-correct { background-color: #d4edda; color: #155724; border-left: 5px solid var(--success-green); }
+        .feedback-wrong { background-color: #f8d7da; color: #721c24; border-left: 5px solid var(--error-red); }
+
+        .next-btn {
+            margin-top: 20px;
+            padding: 12px 30px;
+            background-color: var(--dark-blue);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .result-screen { display: none; }
+
+        @media (max-width: 500px) {
+            .btn-group { grid-template-columns: 1fr; }
+            .quiz-container { padding: 20px; }
+            #statement { font-size: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="quiz-container" id="quiz-main">
+    <div class="progress-bar"><div id="progress-fill"></div></div>
+    
+    <div id="quiz-content">
+        <div class="question-box">
+            <p id="statement">Lade Aussage...</p>
+        </div>
+
+        <div class="btn-group">
+            <button class="quiz-btn btn-true" onclick="handleAnswer(true)">Верно<br>(Richtig)</button>
+            <button class="quiz-btn btn-false" onclick="handleAnswer(false)">Неверно<br>(Falsch)</button>
+        </div>
+
+        <div id="feedback" class="feedback-box">
+            <strong id="feedback-title"></strong>
+            <p id="feedback-text"></p>
+            <button class="next-btn" onclick="nextQuestion()">Weiter</button>
+        </div>
+    </div>
+
+    <div id="result-screen" class="result-screen">
+        <h2>Check abgeschlossen!</h2>
+        <p id="final-score"></p>
+        <button class="next-btn" onclick="location.reload()">Noch einmal spielen</button>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        {
+            text: "Ordnungszahlen verändern sich wie Adjektive nach Geschlecht, Zahl und Fall.",
+            answer: true,
+            explanation: "Richtig! Ordnungszahlen (первый, вторая...) werden grammatikalisch wie Adjektive behandelt."
+        },
+        {
+            text: "Bei zusammengesetzten Zahlen (z. B. 145.) werden alle Wörter verändert.",
+            answer: false,
+            explanation: "Falsch! Nur das allerletzte Wort wird verändert. Beispiel: тысяча сорок пятый."
+        },
+        {
+            text: "Das Wort «третий» (dritter) hat im Maskulinum Nominativ ein Weichheitszeichen vor der Endung.",
+            answer: false,
+            explanation: "Falsch! Im Maskulinum heißt es «третий» (ohne ь). Das Weichheitszeichen erscheint im Femininum (третья), Neutrum (третье) und Plural (третьи)."
+        },
+        {
+            text: "Das Wort «шестой» wird trotz des Buchstabens 'е' wie [шыстой] ausgesprochen.",
+            answer: true,
+            explanation: "Richtig! Nach dem Buchstaben 'ш' wird das 'е' in diesem Wort als [ы] ausgesprochen."
+        },
+        {
+            text: "Ordnungszahlen beantworten die Fragen «какой?» oder «который?».",
+            answer: true,
+            explanation: "Richtig! Man fragt nach der Eigenschaft oder der Position in einer Reihe."
+        },
+        {
+            text: "Bei Zahlen wie 200. (двухсотый) steht der erste Teil im Genitiv.",
+            answer: true,
+            explanation: "Richtig! 'двух' ist der Genitiv von 'два'."
+        }
+    ];
+
+    let currentIdx = 0;
+    let score = 0;
+
+    function displayQuestion() {
+        const q = questions[currentIdx];
+        document.getElementById('statement').innerText = q.text;
+        document.getElementById('feedback').style.display = 'none';
+        document.querySelector('.btn-group').style.display = 'grid';
+        
+        const progress = (currentIdx / questions.length) * 100;
+        document.getElementById('progress-fill').style.width = progress + "%";
+    }
+
+    function handleAnswer(userAnswer) {
+        const q = questions[currentIdx];
+        const feedbackBox = document.getElementById('feedback');
+        const feedbackTitle = document.getElementById('feedback-title');
+        const feedbackText = document.getElementById('feedback-text');
+        
+        document.querySelector('.btn-group').style.display = 'none';
+        feedbackBox.style.display = 'block';
+
+        if (userAnswer === q.answer) {
+            score++;
+            feedbackTitle.innerText = "Правильно! (Korrekt)";
+            feedbackBox.className = "feedback-box feedback-correct";
+        } else {
+            feedbackTitle.innerText = "Ошибка! (Fehler)";
+            feedbackBox.className = "feedback-box feedback-wrong";
+        }
+        feedbackText.innerText = q.explanation;
+    }
+
+    function nextQuestion() {
+        currentIdx++;
+        if (currentIdx < questions.length) {
+            displayQuestion();
+        } else {
+            showResults();
+        }
+    }
+
+    function showResults() {
+        document.getElementById('progress-fill').style.width = "100%";
+        document.getElementById('quiz-content').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'block';
+        document.getElementById('final-score').innerText = `Du hast ${score} von ${questions.length} Fragen richtig beantwortet.`;
+    }
+
+    displayQuestion();
+</script>
+
+</body>
+</html>
