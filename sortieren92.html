@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch: Ordnungszahlen sortieren</title>
+    <style>
+        :root {
+            --mask-color: #3498db;
+            --fem-color: #e91e63;
+            --neut-color: #27ae60;
+            --bg-color: #f4f7f9;
+            --text-dark: #2c3e50;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-container {
+            max-width: 900px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        h1 { 
+            font-size: 1.6rem; 
+            margin-bottom: 10px; 
+            color: var(--text-dark);
+        }
+
+        p.desc { 
+            color: #666; 
+            margin-bottom: 25px; 
+            font-size: 1rem; 
+            line-height: 1.4;
+        }
+
+        /* Wort-Pool */
+        .item-pool {
+            min-height: 120px;
+            background: #fafafa;
+            border: 2px dashed #d1d1d1;
+            border-radius: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .word-card {
+            background: white;
+            border: 2px solid var(--text-dark);
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: grab;
+            user-select: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .word-card:active { cursor: grabbing; }
+
+        .word-card.selected { 
+            border-color: #f1c40f; 
+            background: #fff9e6; 
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(241, 196, 15, 0.4);
+        }
+
+        /* Körbe / Buckets */
+        .buckets-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .bucket {
+            border-radius: 15px;
+            padding: 20px 10px;
+            min-height: 180px;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 3px solid transparent;
+        }
+
+        .bucket h2 { 
+            margin-top: 0; 
+            font-size: 1rem; 
+            color: white; 
+            padding: 6px 12px; 
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        #mask-bucket { background-color: #ebf5fb; border-color: var(--mask-color); }
+        #mask-bucket h2 { background-color: var(--mask-color); }
+
+        #fem-bucket { background-color: #fdf1f5; border-color: var(--fem-color); }
+        #fem-bucket h2 { background-color: var(--fem-color); }
+
+        #neut-bucket { background-color: #eafaf1; border-color: var(--neut-color); }
+        #neut-bucket h2 { background-color: var(--neut-color); }
+
+        .bucket.drag-over { 
+            transform: scale(1.05); 
+            filter: brightness(0.95);
+            border-style: dashed;
+        }
+
+        .sorted-word {
+            font-size: 0.95rem;
+            margin: 4px;
+            padding: 6px 12px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Mobile Anpassung */
+        @media (max-width: 700px) {
+            .buckets-container { grid-template-columns: 1fr; }
+            .bucket { min-height: 100px; padding: 15px; }
+            h1 { font-size: 1.3rem; }
+        }
+
+        .feedback {
+            height: 30px;
+            margin-top: 20px;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .success-screen {
+            display: none;
+            padding: 50px 20px;
+        }
+
+        .btn-restart {
+            margin-top: 20px;
+            padding: 12px 25px;
+            cursor: pointer;
+            border-radius: 10px;
+            border: none;
+            background: var(--text-dark);
+            color: white;
+            font-size: 1rem;
+            transition: background 0.2s;
+        }
+
+        .btn-restart:hover {
+            background: #1a252f;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="app-container" id="main-app">
+    <h1>Порядковые числительные: Род</h1>
+    <p class="desc">
+        Ordne die Wörter dem richtigen Geschlecht zu.<br>
+        <strong>Desktop:</strong> Ziehen & Loslassen | <strong>Mobil:</strong> Wort anklicken, dann Korb anklicken.
+    </p>
+
+    <div class="item-pool" id="item-pool">
+        <!-- Wörter werden hier geladen -->
+    </div>
+
+    <div class="buckets-container">
+        <div class="bucket" id="mask-bucket" ondrop="drop(event, 'm')" ondragover="allowDrop(event)" ondragleave="clearDropEffect(event)" onclick="bucketClick('m')">
+            <h2>Мужской род</h2>
+        </div>
+        <div class="bucket" id="fem-bucket" ondrop="drop(event, 'f')" ondragover="allowDrop(event)" ondragleave="clearDropEffect(event)" onclick="bucketClick('f')">
+            <h2>Женский род</h2>
+        </div>
+        <div class="bucket" id="neut-bucket" ondrop="drop(event, 'n')" ondragover="allowDrop(event)" ondragleave="clearDropEffect(event)" onclick="bucketClick('n')">
+            <h2>Средний род</h2>
+        </div>
+    </div>
+
+    <div class="feedback" id="feedback"></div>
+</div>
+
+<div class="app-container success-screen" id="success-screen">
+    <h1 style="color: var(--neut-color);">Молодцы!</h1>
+    <p>Du hast alle Ordnungszahlen korrekt nach Geschlecht sortiert.</p>
+    <button class="btn-restart" onclick="location.reload()">Noch einmal spielen</button>
+</div>
+
+<script>
+    const words = [
+        { text: "первый", gender: "m" },
+        { text: "вторая", gender: "f" },
+        { text: "третье", gender: "n" },
+        { text: "четвёртый", gender: "m" },
+        { text: "пятая", gender: "f" },
+        { text: "шестое", gender: "n" },
+        { text: "седьмой", gender: "m" },
+        { text: "восьмая", gender: "f" },
+        { text: "девятое", gender: "n" },
+        { text: "десятый", gender: "m" },
+        { text: "сотая", gender: "f" },
+        { text: "миллионное", gender: "n" },
+        { text: "третья", gender: "f" },
+        { text: "третий", gender: "m" }
+    ];
+
+    let selectedWordData = null;
+    let correctCount = 0;
+
+    function initPool() {
+        const pool = document.getElementById('item-pool');
+        const shuffled = [...words].sort(() => Math.random() - 0.5);
+        
+        shuffled.forEach((word, index) => {
+            const card = document.createElement('div');
+            card.className = 'word-card';
+            card.id = 'word-' + index;
+            card.innerText = word.text;
+            card.draggable = true;
+            
+            // Drag Start
+            card.ondragstart = (e) => {
+                e.dataTransfer.setData("text/index", index);
+                e.dataTransfer.setData("text/gender", word.gender);
+                card.classList.add('selected');
+            };
+
+            card.ondragend = () => {
+                card.classList.remove('selected');
+            };
+
+            // Click (für Mobile)
+            card.onclick = (e) => {
+                e.stopPropagation();
+                selectWord(index, word.gender, card);
+            };
+
+            pool.appendChild(card);
+        });
+    }
+
+    // Drag & Drop Logik
+    function allowDrop(e) {
+        e.preventDefault();
+        e.currentTarget.classList.add('drag-over');
+    }
+
+    function clearDropEffect(e) {
+        e.currentTarget.classList.remove('drag-over');
+    }
+
+    function drop(e, targetGender) {
+        e.preventDefault();
+        const bucket = e.currentTarget;
+        bucket.classList.remove('drag-over');
+        
+        const wordIdx = e.dataTransfer.getData("text/index");
+        const wordGender = e.dataTransfer.getData("text/gender");
+        
+        checkMatch(wordIdx, wordGender, targetGender);
+    }
+
+    // Klick-Logik (Mobile)
+    function selectWord(idx, gender, element) {
+        document.querySelectorAll('.word-card').forEach(c => c.classList.remove('selected'));
+        selectedWordData = { idx, gender };
+        element.classList.add('selected');
+        showFeedback("Wähle nun den Korb aus...", "#555");
+    }
+
+    function bucketClick(targetGender) {
+        if (!selectedWordData) return;
+        checkMatch(selectedWordData.idx, selectedWordData.gender, targetGender);
+    }
+
+    // Prüfung
+    function checkMatch(wordIdx, wordGender, targetGender) {
+        const wordCard = document.getElementById('word-' + wordIdx);
+
+        if (wordGender === targetGender) {
+            const bucketId = (targetGender === 'm' ? 'mask' : (targetGender === 'f' ? 'fem' : 'neut')) + '-bucket';
+            const bucket = document.getElementById(bucketId);
+            
+            const tag = document.createElement('div');
+            tag.className = 'sorted-word';
+            tag.innerText = wordCard.innerText;
+            bucket.appendChild(tag);
+            
+            wordCard.remove();
+            selectedWordData = null;
+            correctCount++;
+            showFeedback("Правильно!", "var(--neut-color)");
+
+            if (correctCount === words.length) {
+                setTimeout(() => {
+                    document.getElementById('main-app').style.display = 'none';
+                    document.getElementById('success-screen').style.display = 'block';
+                }, 600);
+            }
+        } else {
+            showFeedback("Попробуйте ещё раз!", "var(--fem-color)");
+            if(wordCard) wordCard.classList.remove('selected');
+            selectedWordData = null;
+        }
+    }
+
+    function showFeedback(text, color) {
+        const fb = document.getElementById('feedback');
+        fb.innerText = text;
+        fb.style.color = color;
+    }
+
+    initPool();
+</script>
+
+</body>
+</html>
