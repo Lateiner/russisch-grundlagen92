@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch: Zahlen-Baukasten (10 Aufgaben)</title>
+    <style>
+        :root {
+            --primary: #3498db;
+            --success: #27ae60;
+            --error: #e74c3c;
+            --bg: #f4f7f6;
+            --text: #2c3e50;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .game-container {
+            max-width: 650px;
+            width: 100%;
+            background: white;
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .level-info {
+            color: #888;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+
+        .target-number {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: var(--text);
+            margin-bottom: 5px;
+        }
+
+        .instruction {
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        .result-area {
+            min-height: 70px;
+            background: #f8f9fa;
+            border: 2px dashed #ddd;
+            border-radius: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            margin-bottom: 30px;
+        }
+
+        .word-card {
+            background: var(--card-bg);
+            border: 2px solid var(--primary);
+            color: var(--primary);
+            padding: 10px 18px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .word-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+        }
+
+        .word-card.in-result {
+            background: var(--primary);
+            color: white;
+        }
+
+        .word-card.correct-final {
+            background: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+
+        .pool-area {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            padding: 20px;
+            border-top: 1px solid #eee;
+            min-height: 100px;
+        }
+
+        .feedback {
+            margin-top: 20px;
+            font-weight: bold;
+            height: 24px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 25px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .btn-next { background: var(--text); color: white; display: none; }
+        .btn-sol { background: #95a5a6; color: white; }
+
+        @media (max-width: 500px) {
+            .word-card { font-size: 0.95rem; padding: 8px 12px; }
+            .target-number { font-size: 1.8rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <div class="level-info" id="level-display">Aufgabe 1 von 10</div>
+    <div class="target-number" id="target-number">128.</div>
+    <p class="instruction">Bringe die Wörter in die richtige Reihenfolge:</p>
+
+    <div class="result-area" id="result-area"></div>
+
+    <div class="pool-area" id="pool-area"></div>
+
+    <div class="feedback" id="feedback"></div>
+
+    <div class="controls">
+        <button class="btn btn-sol" id="sol-btn" onclick="showSolution()">Lösung</button>
+        <button class="btn btn-next" id="next-btn" onclick="nextQuestion()">Nächste Zahl</button>
+    </div>
+</div>
+
+<script>
+    const quizData = [
+        { num: "128.", words: ["сто", "двадцать", "восьмая"], correct: ["сто", "двадцать", "восьмая"] },
+        { num: "345.", words: ["сорок", "триста", "пятый"], correct: ["триста", "сорок", "пятый"] },
+        { num: "2024.", words: ["четвёртый", "тысячи", "двадцать", "две"], correct: ["две", "тысячи", "двадцать", "четвёртый"] },
+        { num: "1011.", words: ["одиннадцатый", "тысяча"], correct: ["тысяча", "одиннадцатый"] },
+        { num: "52.", words: ["второй", "пятьдесят"], correct: ["пятьдесят", "второй"] },
+        { num: "150.", words: ["сто", "пятидесятый"], correct: ["сто", "пятидесятый"] },
+        { num: "99.", words: ["девяносто", "девятый"], correct: ["девяносто", "девятый"] },
+        { num: "1001.", words: ["тысяча", "первый"], correct: ["тысяча", "первый"] },
+        { num: "673.", words: ["шестьсот", "семьдесят", "третий"], correct: ["шестьсот", "семьдесят", "третий"] },
+        { num: "2040.", words: ["две", "тысячи", "сороковой"], correct: ["две", "тысячи", "сороковой"] }
+    ];
+
+    let currentIdx = 0;
+    let selectedWords = [];
+    let isFinished = false;
+
+    function loadLevel() {
+        isFinished = false;
+        selectedWords = [];
+        const q = quizData[currentIdx];
+        
+        document.getElementById('level-display').innerText = `Aufgabe ${currentIdx + 1} von ${quizData.length}`;
+        document.getElementById('target-number').innerText = q.num;
+        document.getElementById('result-area').innerHTML = '';
+        document.getElementById('feedback').innerText = '';
+        document.getElementById('next-btn').style.display = 'none';
+        document.getElementById('sol-btn').style.display = 'inline-block';
+        
+        const pool = document.getElementById('pool-area');
+        pool.innerHTML = '';
+        
+        const shuffled = [...q.words].sort(() => Math.random() - 0.5);
+        
+        shuffled.forEach((word, idx) => {
+            const card = document.createElement('div');
+            card.className = 'word-card';
+            card.innerText = word;
+            card.id = `item-${idx}`; 
+            card.onclick = () => handlePoolClick(word, card);
+            pool.appendChild(card);
+        });
+    }
+
+    function handlePoolClick(word, cardElement) {
+        if (isFinished) return;
+        selectedWords.push(word);
+        cardElement.style.visibility = 'hidden';
+        cardElement.style.pointerEvents = 'none';
+        renderResult();
+        checkResult();
+    }
+
+    function handleResultClick(word, index) {
+        if (isFinished) return;
+        const removedWord = selectedWords.splice(index, 1)[0];
+        renderResult();
+        
+        const poolCards = document.querySelectorAll('.pool-area .word-card');
+        for (let card of poolCards) {
+            if (card.innerText === removedWord && card.style.visibility === 'hidden') {
+                card.style.visibility = 'visible';
+                card.style.pointerEvents = 'auto';
+                break;
+            }
+        }
+        checkResult();
+    }
+
+    function renderResult() {
+        const resultArea = document.getElementById('result-area');
+        resultArea.innerHTML = '';
+        selectedWords.forEach((word, index) => {
+            const card = document.createElement('div');
+            card.className = 'word-card in-result';
+            card.innerText = word;
+            card.onclick = () => handleResultClick(word, index);
+            resultArea.appendChild(card);
+        });
+    }
+
+    function checkResult() {
+        const q = quizData[currentIdx];
+        const feedback = document.getElementById('feedback');
+        
+        if (selectedWords.length === q.correct.length) {
+            const isCorrect = selectedWords.every((val, index) => val === q.correct[index]);
+            if (isCorrect) {
+                isFinished = true;
+                feedback.innerText = "Правильно!";
+                feedback.style.color = "var(--success)";
+                document.getElementById('next-btn').style.display = 'inline-block';
+                document.getElementById('sol-btn').style.display = 'none';
+                document.querySelectorAll('.result-area .word-card').forEach(c => c.classList.add('correct-final'));
+            } else {
+                feedback.innerText = "Die Reihenfolge ist noch nicht richtig.";
+                feedback.style.color = "var(--error)";
+            }
+        } else {
+            feedback.innerText = "";
+        }
+    }
+
+    function showSolution() {
+        const q = quizData[currentIdx];
+        selectedWords = [...q.correct];
+        renderResult();
+        isFinished = true;
+        document.getElementById('pool-area').innerHTML = '';
+        document.getElementById('feedback').innerText = "Hier ist die richtige Reihenfolge.";
+        document.getElementById('feedback').style.color = "var(--primary)";
+        document.getElementById('next-btn').style.display = 'inline-block';
+        document.getElementById('sol-btn').style.display = 'none';
+        document.querySelectorAll('.result-area .word-card').forEach(c => c.classList.add('correct-final'));
+    }
+
+    function nextQuestion() {
+        currentIdx++;
+        if (currentIdx < quizData.length) {
+            loadLevel();
+        } else {
+            showFinal();
+        }
+    }
+
+    function showFinal() {
+        document.querySelector('.game-container').innerHTML = `
+            <h1 style="color: var(--success)">Молодцы!</h1>
+            <p>Du hast alle 10 mehrteiligen Ordnungszahlen richtig zusammengesetzt.</p>
+            <button class="word-card" style="margin: 20px auto; display: block; background: var(--text); color: white; border: none;" onclick="location.reload()">Noch einmal spielen</button>
+        `;
+    }
+
+    loadLevel();
+</script>
+
+</body>
+</html>
