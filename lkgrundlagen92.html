@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch Lernkartei: Ordnungszahlen & Vokabeln</title>
+    <style>
+        :root {
+            --primary-color: #27ae60;
+            --secondary-color: #2ecc71;
+            --bg-color: #f0f9f4;
+            --card-bg: #ffffff;
+            --text-color: #2c3e50;
+            --shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+            font-size: 1.8rem;
+        }
+
+        .progress {
+            margin-bottom: 20px;
+            font-weight: bold;
+            color: var(--primary-color);
+            font-size: 1.2rem;
+        }
+
+        /* Flashcard 3D Effekt */
+        .flashcard-container {
+            perspective: 1000px;
+            width: 100%;
+            height: 300px;
+            margin-bottom: 30px;
+            cursor: pointer;
+        }
+
+        .flashcard {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+            box-shadow: var(--shadow);
+            border-radius: 20px;
+        }
+
+        .flashcard.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+            border-radius: 20px;
+            background: var(--card-bg);
+            border: 2px solid var(--secondary-color);
+        }
+
+        .card-back {
+            transform: rotateY(180deg);
+            background-color: #f9fffb;
+        }
+
+        .card-text {
+            word-wrap: break-word;
+            hyphens: auto;
+            line-height: 1.4;
+        }
+
+        /* Buttons */
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        button {
+            padding: 12px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background-color: var(--primary-color);
+            color: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        button:hover {
+            background-color: var(--secondary-color);
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.secondary {
+            background-color: var(--text-color);
+        }
+
+        .hint {
+            margin-top: 20px;
+            font-size: 0.85rem;
+            color: #7f8c8d;
+        }
+
+        /* Responsive Font Resizing */
+        .size-large { font-size: 2.2rem; font-weight: bold; }
+        .size-medium { font-size: 1.6rem; font-weight: bold; }
+        .size-small { font-size: 1.2rem; font-weight: bold; }
+
+        @media (max-width: 480px) {
+            .flashcard-container { height: 250px; }
+            h1 { font-size: 1.4rem; }
+            button { padding: 10px 15px; font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Russisch Lernkartei</h1>
+        <div class="progress" id="progress">1 / 107</div>
+
+        <div class="flashcard-container" onclick="flipCard()">
+            <div class="flashcard" id="card">
+                <div class="card-face card-front">
+                    <div class="card-text" id="frontText">Загрузка...</div>
+                </div>
+                <div class="card-face card-back">
+                    <div class="card-text" id="backText">Laden...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button onclick="prevCard()">← Vorherige</button>
+            <button onclick="nextCard()">Nächste →</button>
+            <button class="secondary" onclick="shuffleDeck()">Mischen</button>
+            <button class="secondary" onclick="goToStart()">An den Anfang</button>
+        </div>
+
+        <div class="hint">
+            Nutze <b>Pfeiltasten</b> zum Navigieren, <b>Leertaste/Enter</b> zum Umdrehen und <b>Pos1</b> für den Anfang.
+        </div>
+    </div>
+
+<script>
+    const rawData = `1. пе́рвый – erster
+2. второ́й – zweiter
+3. тре́тий – dritter
+4. четвёртый – vierter
+5. пя́тый – fünfter
+6. шесто́й – sechster
+7. седьмо́й – siebter
+8. восьмо́й – achter
+9. девя́тый – neunter
+10. деся́тый – zehnter
+11. оди́ннадцатый – elfter
+12. двена́дцатый – zwölfter
+13. трина́дцатый – dreizehnter
+14. четы́рнадцатый – vierzehnter
+15. пятна́дцатый – fünfzehnter
+16. шестна́дцатый – sechzehnter
+17. семна́дцатый – siebzehnter
+18. восемна́дцатый – achtzehnter
+19. девятна́дцатый – neunzehnter
+20. двадца́тый – zwanzigster
+21. тридца́тый – dreißigster
+22. сороково́й – vierzigster
+23. пятидеся́тый – fünfzigster
+24. шестидеся́тый – sechzigster
+25. семидеся́тый – siebzigster
+26. восьмидеся́тый – achtzigster
+27. девяно́стый – neunzigster
+28. со́тый – hundertster
+29. двухсо́тый – zweihundertster
+30. трёхсо́тый – dreihundertster
+31. четырёхсо́тый – vierhundertster
+32. пятисо́тый – fünfhundertster
+33. шестисо́тый – sechshundertster
+34. семисо́тый – siebenhundertster
+35. восьмисо́тый – achthundertster
+36. девятисо́тый – neunhundertster
+37. ты́сячный – tausendster
+38. двухты́сячный – zweitausendster
+39. миллио́нный – millionster
+40. миллиа́рдный – milliardster
+41. поря́дковое числи́тельное – Ordnungszahl
+42. коли́чественное числи́тельное – Kardinalzahl (Grundzahl)
+43. поря́док – Reihenfolge
+44. спра́шивать / спроси́ть – fragen
+45. отвеча́ть / отве́тить – antworten
+46. счита́ть / посчита́ть – zählen
+47. меня́ться / измени́ться – sich verändern
+48. пока́зывать / показа́ть – zeigen
+49. учи́ть / вы́учить – lernen / auswendig lernen
+50. изуча́ть / изучи́ть – studieren / erlernen
+51. жить / прожи́ть – leben / wohnen
+52. ви́деть / уви́деть – sehen
+53. е́хать / пое́ехать – fahren
+54. писа́ть / написа́ть – schreiben
+55. иська́ть / поиска́ть – suchen
+56. находи́ть / найти́ – finden
+57. паде́ж – Fall (Kasus)
+58. род – Geschlecht (Genus)
+59. число́ – Zahl (Numerus) / Datum
+60. единственное число́ – Einzahl (Singular)
+61. множественное число́ – Mehrzahl (Plural)
+62. мужско́й род – männliches Geschlecht (Maskulinum)
+63. же́нский род – weibliches Geschlecht (Femininum)
+64. сре́дний род – sächliches Geschlecht (Neutrum)
+65. имени́тельный паде́ж – Nominativ
+66. роди́тельный паде́ж – Genitiv
+67. да́тельный паде́ж – Dativ
+68. вини́тельный паде́ж – Akkusativ
+69. твори́тельный паде́ж – Instrumental
+70. предло́жный паде́ж – Präpositiv
+71. оконча́ние – Endung
+72. осно́ва – Stamm (Wortstamm)
+73. живо́й – belebt
+74. неживо́й – unbelebt
+75. эта́ж – Stockwerk
+76. упра́жнение – Übung
+77. зада́ние – Aufgabe
+78. уро́к – Lektion / Unterricht
+79. ле́кция – Vorlesung
+80. страни́ца – Seite
+81. де́нь – Tag
+82. ме́сяц – Monat
+83. го́д – Jahr
+84. зда́ние – Gebäude
+85. до́м – Haus
+86. спи́сок – Liste
+87. челове́к – Mensch
+88. студе́нт – Student
+89. го́сть – Gast
+90. кни́га – Buch
+91. те́кст – Text
+92. ли́фт – Fahrstuhl
+93. кно́пка – Knopf
+94. календа́рь – Kalender
+95. янва́рь – Januar
+96. февра́ль – Februar
+97. ма́рт – März
+98. апре́ль – April
+99. ма́й – Mai
+100. ию́нь – Juni
+101. ию́ль – Juli
+102. а́вгуст – August
+103. сентя́брь – September
+104. октя́брь – Oktober
+105. ноя́брь – November
+106. дека́брь – Dezember
+107. И́ра – Ira`;
+
+    let deck = [];
+    let currentIdx = 0;
+    let isFlipped = false;
+
+    // Daten parsen
+    function parseData() {
+        const lines = rawData.trim().split('\n');
+        deck = lines.map(line => {
+            // Entferne Nummerierung am Anfang (z.B. "1. ")
+            const cleanLine = line.replace(/^\d+\.\s*/, '');
+            const [rus, deu] = cleanLine.split(' – ');
+            return {
+                front: rus.trim(),
+                back: deu.trim()
+            };
+        });
+    }
+
+    function updateCard() {
+        const card = deck[currentIdx];
+        const frontEl = document.getElementById('frontText');
+        const backEl = document.getElementById('backText');
+        
+        frontEl.innerText = card.front;
+        backEl.innerText = card.back;
+
+        // Schriftgröße anpassen
+        adjustFontSize(frontEl, card.front);
+        adjustFontSize(backEl, card.back);
+
+        // Reset Flip State
+        isFlipped = false;
+        document.getElementById('card').classList.remove('flipped');
+        
+        // Update Progress
+        document.getElementById('progress').innerText = `${currentIdx + 1} / ${deck.length}`;
+    }
+
+    function adjustFontSize(element, text) {
+        element.classList.remove('size-large', 'size-medium', 'size-small');
+        if (text.length < 15) {
+            element.classList.add('size-large');
+        } else if (text.length < 30) {
+            element.classList.add('size-medium');
+        } else {
+            element.classList.add('size-small');
+        }
+    }
+
+    function flipCard() {
+        isFlipped = !isFlipped;
+        document.getElementById('card').classList.toggle('flipped', isFlipped);
+    }
+
+    function nextCard() {
+        if (currentIdx < deck.length - 1) {
+            currentIdx++;
+            updateCard();
+        }
+    }
+
+    function prevCard() {
+        if (currentIdx > 0) {
+            currentIdx--;
+            updateCard();
+        }
+    }
+
+    function shuffleDeck() {
+        for (let i = deck.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [deck[i], deck[j]] = [deck[j], deck[i]];
+        }
+        currentIdx = 0;
+        updateCard();
+    }
+
+    function goToStart() {
+        currentIdx = 0;
+        updateCard();
+    }
+
+    // Tastatursteuerung
+    window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' || e.code === 'Enter') {
+            e.preventDefault(); // Verhindert Scrollen bei Leertaste
+            flipCard();
+        } else if (e.code === 'ArrowRight') {
+            nextCard();
+        } else if (e.code === 'ArrowLeft') {
+            prevCard();
+        } else if (e.code === 'Home') {
+            goToStart();
+        }
+    });
+
+    // Initialisierung
+    parseData();
+    updateCard();
+</script>
+
+</body>
+</html>
